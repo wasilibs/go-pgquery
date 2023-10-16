@@ -1,0 +1,102 @@
+diff --git a/src/pg_query.c b/src/pg_query.c
+index e0069e8..6aa738f 100644
+--- a/src/pg_query.c
++++ b/src/pg_query.c
+@@ -5,14 +5,10 @@
+ #include <utils/memutils.h>
+ #include <utils/memdebug.h>
+ 
+-#include <pthread.h>
+-#include <signal.h>
+-
+ const char* progname = "pg_query";
+ 
+-__thread sig_atomic_t pg_query_initialized = 0;
++__thread int pg_query_initialized = 0;
+ 
+-static pthread_key_t pg_query_thread_exit_key;
+ static void pg_query_thread_exit(void *key);
+ 
+ void pg_query_init(void)
+@@ -22,9 +18,6 @@ void pg_query_init(void)
+ 
+ 	MemoryContextInit();
+ 	SetDatabaseEncoding(PG_UTF8);
+-
+-	pthread_key_create(&pg_query_thread_exit_key, pg_query_thread_exit);
+-	pthread_setspecific(pg_query_thread_exit_key, TopMemoryContext);
+ }
+ 
+ void pg_query_free_top_memory_context(MemoryContext context)
+diff --git a/src/postgres/include/access/xlogdefs.h b/src/postgres/include/access/xlogdefs.h
+index a47e3ee..fc5925a 100644
+--- a/src/postgres/include/access/xlogdefs.h
++++ b/src/postgres/include/access/xlogdefs.h
+@@ -78,10 +78,7 @@ typedef uint16 RepOriginId;
+ 
+ #if defined(O_DSYNC)
+ #if defined(OPEN_SYNC_FLAG)
+-/* O_DSYNC is distinct? */
+-#if O_DSYNC != OPEN_SYNC_FLAG
+ #define OPEN_DATASYNC_FLAG		O_DSYNC
+-#endif
+ #else							/* !defined(OPEN_SYNC_FLAG) */
+ /* Win32 only has O_DSYNC */
+ #define OPEN_DATASYNC_FLAG		O_DSYNC
+diff --git a/src/postgres/include/utils/elog.h b/src/postgres/include/utils/elog.h
+index 9cfad3d..efc3057 100644
+--- a/src/postgres/include/utils/elog.h
++++ b/src/postgres/include/utils/elog.h
+@@ -312,13 +312,13 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+  */
+ #define PG_TRY()  \
+ 	do { \
+-		sigjmp_buf *_save_exception_stack = PG_exception_stack; \
++		jmp_buf *_save_exception_stack = PG_exception_stack; \
+ 		ErrorContextCallback *_save_context_stack = error_context_stack; \
+-		sigjmp_buf _local_sigjmp_buf; \
++		jmp_buf _local_jmp_buf; \
+ 		bool _do_rethrow = false; \
+-		if (sigsetjmp(_local_sigjmp_buf, 0) == 0) \
++		if (setjmp(_local_jmp_buf) == 0) \
+ 		{ \
+-			PG_exception_stack = &_local_sigjmp_buf
++			PG_exception_stack = &_local_jmp_buf
+ 
+ #define PG_CATCH()	\
+ 		} \
+@@ -355,7 +355,7 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+ 	(pg_re_throw(), pg_unreachable())
+ #endif
+ 
+-extern PGDLLIMPORT __thread  sigjmp_buf *PG_exception_stack;
++extern PGDLLIMPORT __thread  jmp_buf *PG_exception_stack;
+ 
+ 
+ /* Stuff that error handlers might want to use */
+diff --git a/src/postgres/src_backend_utils_error_elog.c b/src/postgres/src_backend_utils_error_elog.c
+index 6dfd560..1330e5b 100644
+--- a/src/postgres/src_backend_utils_error_elog.c
++++ b/src/postgres/src_backend_utils_error_elog.c
+@@ -1444,7 +1444,7 @@ pg_re_throw(void)
+ {
+ 	/* If possible, throw the error to the next outer setjmp handler */
+ 	if (PG_exception_stack != NULL)
+-		siglongjmp(*PG_exception_stack, 1);
++		longjmp(*PG_exception_stack, 1);
+ 	else
+ 	{
+ 		/*
+diff --git a/src/postgres/src_port_strerror.c b/src/postgres/src_port_strerror.c
+index 45686d3..171eea8 100644
+--- a/src/postgres/src_port_strerror.c
++++ b/src/postgres/src_port_strerror.c
+@@ -160,8 +160,6 @@ get_errno_symbol(int errnum)
+ 			return "EFAULT";
+ 		case EFBIG:
+ 			return "EFBIG";
+-		case EHOSTDOWN:
+-			return "EHOSTDOWN";
+ 		case EHOSTUNREACH:
+ 			return "EHOSTUNREACH";
+ 		case EIDRM:
