@@ -1,4 +1,4 @@
-FROM wasix
+FROM ghcr.io/wasilibs/wasix-sdk:sha-fc94d60
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
