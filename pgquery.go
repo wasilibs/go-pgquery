@@ -1,8 +1,9 @@
 package pg_query
 
 import (
-	"github.com/wasilibs/go-pgquery/parser"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/wasilibs/go-pgquery/parser"
 )
 
 // ParseToJSON - Parses the given SQL statement into a parse tree (JSON format)

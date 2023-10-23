@@ -2,6 +2,7 @@ package wasix_32v1
 
 import (
 	"context"
+
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
@@ -134,8 +135,8 @@ var stackCheckpointFn = api.GoModuleFunc(func(ctx context.Context, mod api.Modul
 
 	// We go ahead and save the entire C-stack for now
 	cstackPointer := uint32(mod.ExportedGlobal("__stack_pointer").Get())
-	stackTop := d.stackTop
-	cstackView, ok := mod.Memory().Read(cstackPointer, stackTop-cstackPointer)
+	cstackTop := uint32(mod.ExportedGlobal("__heap_base").Get())
+	cstackView, ok := mod.Memory().Read(cstackPointer, cstackTop-cstackPointer)
 	if !ok {
 		panic("read failed")
 	}
@@ -200,14 +201,13 @@ type wasixCheckpoint struct {
 
 type wasixData struct {
 	checkpoints []wasixCheckpoint
-	stackTop    uint32
 }
 
 type wasixDataKey struct{}
 
-func BackgroundContext(stackTop uint32) context.Context {
+func BackgroundContext() context.Context {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, experimental.EnableSnapshotterKey{}, true)
-	ctx = context.WithValue(ctx, wasixDataKey{}, &wasixData{stackTop: stackTop})
+	ctx = context.WithValue(ctx, wasixDataKey{}, &wasixData{})
 	return ctx
 }

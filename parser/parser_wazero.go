@@ -6,15 +6,15 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"os"
+
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+
 	"github.com/wasilibs/go-pgquery/internal/wasix_32v1"
 	"github.com/wasilibs/go-pgquery/internal/wasm"
-	"os"
-	"runtime"
-	"sync/atomic"
 )
 
 var (
@@ -25,8 +25,6 @@ var (
 var (
 	wasmRT       wazero.Runtime
 	wasmCompiled wazero.CompiledModule
-
-	root api.Module
 )
 
 func init() {
@@ -36,89 +34,21 @@ func init() {
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 	wasix_32v1.MustInstantiate(ctx, rt)
 
-	if _, err := rt.InstantiateWithConfig(ctx, wasm.Memory, wazero.NewModuleConfig().WithName("env")); err != nil {
-		panic(err)
-	}
-
 	code, err := rt.CompileModule(ctx, wasm.LibPGQuery)
-	if err != nil {
-		panic(err)
-	}
-	mod, err := rt.InstantiateModule(ctx, code, wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithName("").WithStartFunctions("_initialize"))
 	if err != nil {
 		panic(err)
 	}
 
 	wasmCompiled = code
 	wasmRT = rt
-	root = mod
-}
-
-var prevTID uint32
-
-type childModule struct {
-	mod        api.Module
-	tlsBasePtr uint32
-	stackTop   uint32
-	functions  map[string]api.Function
-}
-
-func createChildModule(rt wazero.Runtime, root api.Module) *childModule {
-	ctx := context.Background()
-
-	// Not executing function so is at end of stack
-	stackPointer := root.ExportedGlobal("__stack_pointer").Get()
-	tlsBase := root.ExportedGlobal("__tls_base").Get()
-
-	// Thread-local-storage for the main thread is from __tls_base to __stack_pointer
-	// For now, let's preserve the size but in the future we can probably use less.
-	size := stackPointer - tlsBase
-
-	malloc := root.ExportedFunction("malloc")
-
-	// Allocate memory for the child thread stack
-	res, err := malloc.Call(ctx, size)
-	if err != nil {
-		panic(err)
-	}
-	ptr := uint32(res[0])
-
-	child, err := rt.InstantiateModule(ctx, wasmCompiled, wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).
-		// Don't need to execute start functions again in child, it crashes anyways.
-		WithStartFunctions())
-	if err != nil {
-		panic(err)
-	}
-	initTLS := child.ExportedFunction("__wasm_init_tls")
-	if _, err := initTLS.Call(ctx, uint64(ptr)); err != nil {
-		panic(err)
-	}
-
-	tid := atomic.AddUint32(&prevTID, 1)
-	root.Memory().WriteUint32Le(ptr, ptr)
-	root.Memory().WriteUint32Le(ptr+20, tid)
-	child.ExportedGlobal("__stack_pointer").(api.MutableGlobal).Set(uint64(ptr) + size)
-
-	ret := &childModule{
-		mod:        child,
-		tlsBasePtr: ptr,
-		stackTop:   ptr + uint32(size),
-		functions:  map[string]api.Function{},
-	}
-	runtime.SetFinalizer(ret, func(obj interface{}) {
-		cm := obj.(*childModule)
-		free := cm.mod.ExportedFunction("free")
-		if _, err := free.Call(ctx, uint64(cm.tlsBasePtr)); err != nil {
-			panic(err)
-		}
-		_ = cm.mod.Close(context.Background())
-	})
-	return ret
 }
 
 func newABI() *abi {
-	modH := createChildModule(wasmRT, root)
-	mod := modH.mod
+	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
+	mod, err := wasmRT.InstantiateModule(context.Background(), wasmCompiled, cfg)
+	if err != nil {
+		panic(err)
+	}
 	abi := &abi{
 		fPgQueryInit:                    newLazyFunction(wasmRT, mod, "pg_query_init"),
 		fPgQueryParse:                   newLazyFunction(wasmRT, mod, "pg_query_parse"),
@@ -130,7 +60,6 @@ func newABI() *abi {
 		free:   newLazyFunction(wasmRT, mod, "free"),
 
 		mod:        mod,
-		child:      modH,
 		wasmMemory: mod.Memory(),
 	}
 
@@ -151,8 +80,11 @@ type abi struct {
 
 	wasmMemory api.Memory
 
-	mod   api.Module
-	child *childModule
+	mod api.Module
+}
+
+func (abi *abi) Close() error {
+	return abi.mod.Close(context.Background())
 }
 
 func (abi *abi) pgQueryInit() {
@@ -160,7 +92,7 @@ func (abi *abi) pgQueryInit() {
 }
 
 func (abi *abi) pgQueryParse(input cString) (result string, err error) {
-	ctx := wasix_32v1.BackgroundContext(abi.child.stackTop)
+	ctx := wasix_32v1.BackgroundContext()
 
 	resPtr := abi.malloc.Call1(ctx, 12)
 	defer abi.free.Call1(ctx, resPtr)
@@ -192,7 +124,7 @@ func (abi *abi) pgQueryParse(input cString) (result string, err error) {
 }
 
 func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
-	ctx := wasix_32v1.BackgroundContext(abi.child.stackTop)
+	ctx := wasix_32v1.BackgroundContext()
 
 	resPtr := abi.malloc.Call1(ctx, 16)
 	defer abi.free.Call1(ctx, resPtr)

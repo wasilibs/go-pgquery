@@ -5,5 +5,5 @@ import (
 )
 
 func init() {
-	magefiles.SetLibraryName("webp")
+	magefiles.SetLibraryName("pgquery")
 }

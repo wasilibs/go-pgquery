@@ -16,6 +16,7 @@ func (e *Error) Error() string {
 // ParseToJSON - Parses the given SQL statement into a parse tree (JSON format)
 func ParseToJSON(input string) (result string, err error) {
 	abi := newABI()
+	defer abi.Close()
 
 	inputC := abi.newCString(input)
 	defer inputC.Close()
@@ -26,6 +27,7 @@ func ParseToJSON(input string) (result string, err error) {
 // ParseToProtobuf - Parses the given SQL statement into a parse tree (Protobuf format)
 func ParseToProtobuf(input string) (result []byte, err error) {
 	abi := newABI()
+	defer abi.Close()
 
 	inputC := abi.newCString(input)
 	defer inputC.Close()

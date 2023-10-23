@@ -2,8 +2,8 @@ FROM wasix
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
-ENV CFLAGS "${CFLAGS} -g"
-ENV LDFLAGS $LDFLAGS -mexec-model=reactor
+ENV CFLAGS "${CFLAGS} -g -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
+ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
 
 WORKDIR /workspace
 RUN curl -L https://github.com/pganalyze/libpg_query/archive/refs/tags/15-4.2.3.tar.gz | tar -xz --strip-components 1 -C /workspace
@@ -21,7 +21,9 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=pg_query_parse \
     -Wl,--export=pg_query_free_parse_result \
     -Wl,--export=pg_query_parse_protobuf \
-    -Wl,--export=pg_query_free_protobuf_parse_result
+    -Wl,--export=pg_query_free_protobuf_parse_result \
+    -Wl,--export=__stack_pointer \
+    -Wl,--export=__heap_base
 
 RUN mv libpg_query-noopt.so libpg_query.so
 #RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop --asyncify -O3 libpg_query-noopt.so

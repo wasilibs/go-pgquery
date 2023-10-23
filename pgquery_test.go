@@ -1,12 +1,14 @@
 package pg_query_test
 
 import (
-	"github.com/google/go-cmp/cmp"
-	pg_query "github.com/wasilibs/go-pgquery"
-	"github.com/wasilibs/go-pgquery/parser"
-	"google.golang.org/protobuf/testing/protocmp"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
+
+	pg_query "github.com/wasilibs/go-pgquery"
+	"github.com/wasilibs/go-pgquery/parser"
 )
 
 var parseTests = []struct {
