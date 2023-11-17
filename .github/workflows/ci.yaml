@@ -35,7 +35,7 @@ jobs:
           go-version: '^1.21'
 
       - name: run checks
-        run: go run mage.go check
+        run: go run mage check
         env:
           WASI_TEST_MODE: ${{ matrix.mode }}
 
@@ -52,4 +52,4 @@ jobs:
 
       - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
 
-      - run: go run mage.go test
+      - run: go run mage test
