@@ -8,17 +8,16 @@ import (
 	"errors"
 	"os"
 
-	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/experimental"
-	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-
 	"github.com/wasilibs/go-pgquery/internal/wasix_32v1"
 	"github.com/wasilibs/go-pgquery/internal/wasm"
+	wazero "github.com/wasilibs/wazerox"
+	"github.com/wasilibs/wazerox/api"
+	"github.com/wasilibs/wazerox/experimental"
+	"github.com/wasilibs/wazerox/imports/wasi_snapshot_preview1"
 )
 
 var (
-	errFailedWrite = errors.New("failed to read from wasm memory")
+	errFailedWrite = errors.New("failed to write to wasm memory")
 	errFailedRead  = errors.New("failed to read from wasm memory")
 )
 
@@ -270,8 +269,12 @@ type cString struct {
 
 func (abi *abi) newCString(s string) cString {
 	ptr := uint32(abi.malloc.Call1(context.Background(), uint64(len(s)+1)))
-	abi.wasmMemory.WriteString(ptr, s)
-	abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0)
+	if !abi.wasmMemory.WriteString(ptr, s) {
+		panic(errFailedWrite)
+	}
+	if !abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0) {
+		panic(errFailedWrite)
+	}
 	return cString{
 		ptr:    ptr,
 		length: len(s),

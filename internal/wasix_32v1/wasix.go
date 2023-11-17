@@ -3,9 +3,9 @@ package wasix_32v1
 import (
 	"context"
 
-	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/experimental"
+	wazero "github.com/wasilibs/wazerox"
+	"github.com/wasilibs/wazerox/api"
+	"github.com/wasilibs/wazerox/experimental"
 )
 
 const ModuleName = "wasix_32v1"
@@ -84,7 +84,7 @@ func exportFunctions(builder wazero.HostModuleBuilder) {
 		Export("futex_wait")
 
 	builder.NewFunctionBuilder().
-		WithGoModuleFunction(futexWakeAllFn, []api.ValueType{i32, i32}, []api.ValueType{i32}).
+		WithGoModuleFunction(futexWakeFn, []api.ValueType{i32, i32}, []api.ValueType{i32}).
 		Export("futex_wake")
 
 	builder.NewFunctionBuilder().

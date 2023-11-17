@@ -1,8 +1,7 @@
 go 1.19
 
-toolchain go1.21
-
 use (
 	.
+	./mage
 	./magefiles
 )
