@@ -54,6 +54,12 @@ func newABI() *abi {
 		fPgQueryFreeParseResult:         newLazyFunction(wasmRT, mod, "pg_query_free_parse_result"),
 		fPgQueryParseProtobuf:           newLazyFunction(wasmRT, mod, "pg_query_parse_protobuf"),
 		fPgQueryFreeProtobufParseResult: newLazyFunction(wasmRT, mod, "pg_query_free_protobuf_parse_result"),
+		fPgQueryParsePlpgsql:            newLazyFunction(wasmRT, mod, "pg_query_parse_plpgsql"),
+		fPgQueryFreePlpgsqlParseResult:  newLazyFunction(wasmRT, mod, "pg_query_free_plpgsql_parse_result"),
+		fPgQueryScan:                    newLazyFunction(wasmRT, mod, "pg_query_scan"),
+		fPgQueryFreeScanResult:          newLazyFunction(wasmRT, mod, "pg_query_free_scan_result"),
+		fPgQueryNormalize:               newLazyFunction(wasmRT, mod, "pg_query_normalize"),
+		fPgQueryFreeNormalizeResult:     newLazyFunction(wasmRT, mod, "pg_query_free_normalize_result"),
 
 		malloc: newLazyFunction(wasmRT, mod, "malloc"),
 		free:   newLazyFunction(wasmRT, mod, "free"),
@@ -73,6 +79,12 @@ type abi struct {
 	fPgQueryFreeParseResult         lazyFunction
 	fPgQueryParseProtobuf           lazyFunction
 	fPgQueryFreeProtobufParseResult lazyFunction
+	fPgQueryParsePlpgsql            lazyFunction
+	fPgQueryFreePlpgsqlParseResult  lazyFunction
+	fPgQueryScan                    lazyFunction
+	fPgQueryFreeScanResult          lazyFunction
+	fPgQueryNormalize               lazyFunction
+	fPgQueryFreeNormalizeResult     lazyFunction
 
 	malloc lazyFunction
 	free   lazyFunction
@@ -150,6 +162,60 @@ func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
 	}
 
 	return buf, nil
+}
+
+func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
+	ctx := wasix_32v1.BackgroundContext()
+
+	resPtr := abi.malloc.Call1(ctx, 16)
+	defer abi.free.Call1(ctx, resPtr)
+
+	abi.fPgQueryScan.Call2(ctx, resPtr, uint64(input.ptr))
+	defer abi.fPgQueryFreeScanResult.Call1(ctx, resPtr)
+
+	resBuf, ok := abi.wasmMemory.Read(uint32(resPtr), 16)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[12:])
+	if errPtr != 0 {
+		return nil, newPgQueryError(abi.mod, errPtr)
+	}
+
+	pgQueryProtobufLen := binary.LittleEndian.Uint32(resBuf)
+	pgQueryProtobufData := binary.LittleEndian.Uint32(resBuf[4:])
+
+	buf, ok := abi.wasmMemory.Read(pgQueryProtobufData, pgQueryProtobufLen)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	return buf, nil
+}
+
+func (abi *abi) pgQueryParsePlPgSqlToJSON(input cString) (result string, err error) {
+	ctx := wasix_32v1.BackgroundContext()
+
+	resPtr := abi.malloc.Call1(ctx, 8)
+	defer abi.free.Call1(ctx, resPtr)
+
+	abi.fPgQueryParsePlpgsql.Call2(ctx, resPtr, uint64(input.ptr))
+	defer abi.fPgQueryFreePlpgsqlParseResult.Call1(ctx, resPtr)
+
+	resBuf, ok := abi.wasmMemory.Read(uint32(resPtr), 8)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[4:])
+	if errPtr != 0 {
+		return "", newPgQueryError(abi.mod, errPtr)
+	}
+
+	result = readCStringPtr(abi.wasmMemory, uint32(resPtr))
+
+	return
 }
 
 func newPgQueryError(mod api.Module, errPtr uint32) error {

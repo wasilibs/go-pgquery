@@ -22,6 +22,12 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=pg_query_free_parse_result \
     -Wl,--export=pg_query_parse_protobuf \
     -Wl,--export=pg_query_free_protobuf_parse_result \
+    -Wl,--export=pg_query_parse_plpgsql \
+    -Wl,--export=pg_query_free_plpgsql_parse_result \
+    -Wl,--export=pg_query_scan \
+    -Wl,--export=pg_query_free_scan_result \
+    -Wl,--export=pg_query_normalize \
+    -Wl,--export=pg_query_free_normalize_result \
     -Wl,--export=__stack_pointer \
     -Wl,--export=__heap_base
 

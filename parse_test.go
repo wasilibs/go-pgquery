@@ -649,7 +649,6 @@ func TestParseConcurrency(t *testing.T) {
 			defer wg.Done()
 
 			_, err := pg_query.Parse("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
-
 			if err != nil {
 				t.Errorf("Concurrency test produced error %s\n\n", err)
 			}
@@ -660,4 +659,52 @@ func TestParseConcurrency(t *testing.T) {
 
 	wg.Wait()
 	fmt.Println()
+}
+
+var parsePlPgSQLTests = []struct {
+	input        string
+	expectedJSON string
+}{
+	{
+		`CREATE OR REPLACE FUNCTION cs_fmt_browser_version(v_name varchar,` +
+			`v_version varchar) ` +
+			`RETURNS varchar AS $$ ` +
+			`BEGIN ` +
+			`    IF v_version IS NULL THEN` +
+			`        RETURN v_name;` +
+			`    END IF;` +
+			`    RETURN v_name || '/' || v_version;` +
+			`END;` +
+			`$$ LANGUAGE plpgsql;`,
+		`[
+{"PLpgSQL_function":{"datums":[{"PLpgSQL_var":{"refname":"v_name","datatype":{"PLpgSQL_type":{"typname":"UNKNOWN"}}}},{"PLpgSQL_var":{"refname":"v_version","datatype":{"PLpgSQL_type":{"typname":"UNKNOWN"}}}},{"PLpgSQL_var":{"refname":"found","datatype":{"PLpgSQL_type":{"typname":"UNKNOWN"}}}}],"action":{"PLpgSQL_stmt_block":{"lineno":1,"body":[{"PLpgSQL_stmt_if":{"lineno":1,"cond":{"PLpgSQL_expr":{"query":"v_version IS NULL"}},"then_body":[{"PLpgSQL_stmt_return":{"lineno":1,"expr":{"PLpgSQL_expr":{"query":"v_name"}}}}]}},{"PLpgSQL_stmt_return":{"lineno":1,"expr":{"PLpgSQL_expr":{"query":"v_name || '/' || v_version"}}}}]}}}}
+]`,
+	},
+}
+
+func TestParsePlPgSQL(t *testing.T) {
+	for _, test := range parsePlPgSQLTests {
+		actualJSON, err := pg_query.ParsePlPgSqlToJSON(test.input)
+
+		if err != nil {
+			t.Errorf("ParsePlPgSqlToJSON(%s)\nerror %s\n\n", test.input, err)
+		} else if actualJSON != test.expectedJSON {
+			t.Errorf("ParsePlPgSqlToJSON(%s)\nexpected %s\nactual %s\n\n", test.input, test.expectedJSON, actualJSON)
+		}
+	}
+}
+
+func TestScan(t *testing.T) {
+	smokeTest := func(input string) {
+		_, err := pg_query.Scan(input)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	for _, testCase := range parseTests {
+		smokeTest(testCase.input)
+	}
+	for _, testCase := range parsePlPgSQLTests {
+		smokeTest(testCase.input)
+	}
 }
