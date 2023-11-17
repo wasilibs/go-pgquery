@@ -1,0 +1,55 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          # TODO(anuraaga): Implement cgo path
+          #- cgo
+          #- tinygo
+          - wazero
+        os:
+          - macos-12
+          - ubuntu-22.04
+          - windows-2022
+        exclude:
+          # https://github.com/tinygo-org/tinygo/issues/3594
+          - os: windows-2022
+            mode: tinygo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.work
+
+      - name: run checks
+        run: go run mage.go check
+        env:
+          WASI_TEST_MODE: ${{ matrix.mode }}
+
+  # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
+  # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
+  # but not build without a C toolchain available, e.g. if C source files are checked into the repo
+  # without a build tag to exclude them from pure-Go builds.
+  docker-build:
+    runs-on: ubuntu-22.04
+    container:
+      image: golang:alpine
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
+
+      - run: go run mage.go test

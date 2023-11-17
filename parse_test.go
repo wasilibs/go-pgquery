@@ -1,7 +1,9 @@
 package pg_query_test
 
 import (
+	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -635,4 +637,27 @@ func TestParseError(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestParseConcurrency(t *testing.T) {
+	var wg sync.WaitGroup
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			_, err := pg_query.Parse("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
+
+			if err != nil {
+				t.Errorf("Concurrency test produced error %s\n\n", err)
+			}
+
+			fmt.Printf(".")
+		}()
+	}
+
+	wg.Wait()
+	fmt.Println()
 }
