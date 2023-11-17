@@ -1,7 +1,5 @@
 package parser
 
-import "C"
-
 type Error struct {
 	Message   string // exception message
 	Funcname  string // source function of exception (e.g. SearchSysCache)
