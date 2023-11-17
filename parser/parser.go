@@ -56,3 +56,14 @@ func ParsePlPgSqlToJSON(input string) (result string, err error) {
 
 	return abi.pgQueryParsePlPgSqlToJSON(inputC)
 }
+
+// Normalize the passed SQL statement to replace constant values with ? characters
+func Normalize(input string) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryNormalize(inputC)
+}

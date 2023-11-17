@@ -194,6 +194,30 @@ func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
 	return buf, nil
 }
 
+func (abi *abi) pgQueryNormalize(input cString) (result string, err error) {
+	ctx := wasix_32v1.BackgroundContext()
+
+	resPtr := abi.malloc.Call1(ctx, 8)
+	defer abi.free.Call1(ctx, resPtr)
+
+	abi.fPgQueryNormalize.Call2(ctx, resPtr, uint64(input.ptr))
+	defer abi.fPgQueryFreeNormalizeResult.Call1(ctx, resPtr)
+
+	resBuf, ok := abi.wasmMemory.Read(uint32(resPtr), 8)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[4:])
+	if errPtr != 0 {
+		return "", newPgQueryError(abi.mod, errPtr)
+	}
+
+	result = readCStringPtr(abi.wasmMemory, uint32(resPtr))
+
+	return
+}
+
 func (abi *abi) pgQueryParsePlPgSqlToJSON(input cString) (result string, err error) {
 	ctx := wasix_32v1.BackgroundContext()
 
