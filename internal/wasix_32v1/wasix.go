@@ -84,7 +84,7 @@ func exportFunctions(builder wazero.HostModuleBuilder) {
 		Export("futex_wait")
 
 	builder.NewFunctionBuilder().
-		WithGoModuleFunction(futexWakeAllFn, []api.ValueType{i32, i32}, []api.ValueType{i32}).
+		WithGoModuleFunction(futexWakeFn, []api.ValueType{i32, i32}, []api.ValueType{i32}).
 		Export("futex_wake")
 
 	builder.NewFunctionBuilder().
