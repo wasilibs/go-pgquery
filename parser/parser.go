@@ -34,3 +34,25 @@ func ParseToProtobuf(input string) (result []byte, err error) {
 
 	return abi.pgQueryParseProtobuf(inputC)
 }
+
+// Scans the given SQL statement into a protobuf ScanResult
+func ScanToProtobuf(input string) (result []byte, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryScanProtobuf(inputC)
+}
+
+// ParsePlPgSqlToJSON - Parses the given PL/pgSQL function statement into a parse tree (JSON format)
+func ParsePlPgSqlToJSON(input string) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryParsePlPgSqlToJSON(inputC)
+}
