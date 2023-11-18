@@ -60,6 +60,8 @@ func newABI() *abi {
 		fPgQueryFreeScanResult:          newLazyFunction(wasmRT, mod, "pg_query_free_scan_result"),
 		fPgQueryNormalize:               newLazyFunction(wasmRT, mod, "pg_query_normalize"),
 		fPgQueryFreeNormalizeResult:     newLazyFunction(wasmRT, mod, "pg_query_free_normalize_result"),
+		fPgQueryFingerprint:             newLazyFunction(wasmRT, mod, "pg_query_fingerprint"),
+		fPgQueryFreeFingerprintResult:   newLazyFunction(wasmRT, mod, "pg_query_free_fingerprint_result"),
 
 		malloc: newLazyFunction(wasmRT, mod, "malloc"),
 		free:   newLazyFunction(wasmRT, mod, "free"),
@@ -85,6 +87,8 @@ type abi struct {
 	fPgQueryFreeScanResult          lazyFunction
 	fPgQueryNormalize               lazyFunction
 	fPgQueryFreeNormalizeResult     lazyFunction
+	fPgQueryFingerprint             lazyFunction
+	fPgQueryFreeFingerprintResult   lazyFunction
 
 	malloc lazyFunction
 	free   lazyFunction
@@ -238,6 +242,54 @@ func (abi *abi) pgQueryParsePlPgSqlToJSON(input cString) (result string, err err
 	}
 
 	result = readCStringPtr(abi.wasmMemory, uint32(resPtr))
+
+	return
+}
+
+func (abi *abi) pgQueryFingerprintToUint64(input cString) (result uint64, err error) {
+	ctx := wasix_32v1.BackgroundContext()
+
+	resPtr := abi.malloc.Call1(ctx, 20)
+	defer abi.free.Call1(ctx, resPtr)
+
+	abi.fPgQueryFingerprint.Call2(ctx, resPtr, uint64(input.ptr))
+	defer abi.fPgQueryFreeFingerprintResult.Call1(ctx, resPtr)
+
+	resBuf, ok := abi.wasmMemory.Read(uint32(resPtr), 20)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[16:])
+	if errPtr != 0 {
+		return 0, newPgQueryError(abi.mod, errPtr)
+	}
+
+	result = binary.LittleEndian.Uint64(resBuf)
+
+	return
+}
+
+func (abi *abi) pgQueryFingerprintToHexStr(input cString) (result string, err error) {
+	ctx := wasix_32v1.BackgroundContext()
+
+	resPtr := abi.malloc.Call1(ctx, 20)
+	defer abi.free.Call1(ctx, resPtr)
+
+	abi.fPgQueryFingerprint.Call2(ctx, resPtr, uint64(input.ptr))
+	defer abi.fPgQueryFreeFingerprintResult.Call1(ctx, resPtr)
+
+	resBuf, ok := abi.wasmMemory.Read(uint32(resPtr), 20)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[16:])
+	if errPtr != 0 {
+		return "", newPgQueryError(abi.mod, errPtr)
+	}
+
+	result = readCStringPtr(abi.wasmMemory, uint32(resPtr)+8)
 
 	return
 }

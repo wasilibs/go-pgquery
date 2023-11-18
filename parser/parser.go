@@ -67,3 +67,25 @@ func Normalize(input string) (result string, err error) {
 
 	return abi.pgQueryNormalize(inputC)
 }
+
+// FingerprintToUInt64 - Fingerprint the passed SQL statement using the C extension and returns result as uint64
+func FingerprintToUInt64(input string) (result uint64, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryFingerprintToUint64(inputC)
+}
+
+// FingerprintToHexStr - Fingerprint the passed SQL statement using the C extension and returns result as hex string
+func FingerprintToHexStr(input string) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryFingerprintToHexStr(inputC)
+}
