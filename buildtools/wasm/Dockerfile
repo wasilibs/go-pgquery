@@ -2,7 +2,7 @@ FROM ghcr.io/wasilibs/wasix-sdk:sha-fc94d60
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
-ENV CFLAGS "${CFLAGS} -g -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
+ENV CFLAGS "${CFLAGS} -O3 -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
 ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
 
 WORKDIR /workspace
@@ -12,9 +12,16 @@ RUN patch -p3 < patch.txt
 # Bring in some of https://github.com/pganalyze/libpg_query/blob/15-latest/Makefile#L129
 RUN echo "#undef HAVE_LOCALE_T" >> include/pg_config.h && \
     echo "#undef LOCALE_T_IN_XLOCALE" >> include/pg_config.h && \
-    echo "#undef WCSTOMBS_L_IN_XLOCALE" >> include/pg_config.h
+    echo "#undef WCSTOMBS_L_IN_XLOCALE" >> include/pg_config.h && \
+    echo "#undef PG_INT128_TYPE" >> include/pg_config.h && \
+    echo "#undef HAVE_EXECINFO_H" >> include/pg_config.h && \
+    echo "#undef HAVE_BACKTRACE_SYMBOLS" >> include/pg_config.h && \
+    echo "#undef HAVE_X86_64_POPCNTQ" >> include/pg_config.h && \
+    echo "#undef HAVE__GET_CPUID" >> include/pg_config.h && \
+    echo "#undef USE_ARMV8_CRC32C" >> include/pg_config.h && \
+    echo "#undef USE_SSE42_CRC32C_WITH_RUNTIME_CHECK" >> include/pg_config.h
 
-RUN CMD="$CC -Iinclude -fstack-protector -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
+RUN CMD="$CC -Iinclude -fstack-protector -fno-strict-aliasing -fwrapv -fPIC -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     *.o \
