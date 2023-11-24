@@ -6,12 +6,11 @@ ENV CFLAGS "${CFLAGS} -g -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
 ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
 
 WORKDIR /workspace
-#RUN curl -L https://github.com/pganalyze/libpg_query/archive/refs/tags/15-4.2.3.tar.gz | tar -xz --strip-components 1 -C /workspace
 ADD internal/cparser .
-ADD buildtools/wasm/patch2.txt patch.txt
+ADD buildtools/wasm/patch.txt patch.txt
 RUN patch -p3 < patch.txt
 
-RUN $CC -Iinclude -Wno-deprecated-non-prototype -c $CFLAGS *.c
+RUN CMD="$CC -Iinclude -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     *.o \

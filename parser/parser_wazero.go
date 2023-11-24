@@ -3,6 +3,7 @@
 package parser
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -242,7 +243,7 @@ func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
 		panic(errFailedRead)
 	}
 
-	return buf, nil
+	return bytes.Clone(buf), nil
 }
 
 func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
@@ -272,7 +273,7 @@ func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
 		panic(errFailedRead)
 	}
 
-	return buf, nil
+	return bytes.Clone(buf), nil
 }
 
 func (abi *abi) pgQueryNormalize(input cString) (result string, err error) {
