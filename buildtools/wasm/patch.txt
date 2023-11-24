@@ -1,7 +1,37 @@
-diff --git a/internal/cparser/include/access/xlogdefs.h b/internal/cparser/include/access/xlogdefs.h
+diff --git a/src/pg_query.c b/src/pg_query.c
+index e0069e8..6aa738f 100644
+--- a/src/pg_query.c
++++ b/src/pg_query.c
+@@ -5,14 +5,10 @@
+ #include <utils/memutils.h>
+ #include <utils/memdebug.h>
+ 
+-#include <pthread.h>
+-#include <signal.h>
+-
+ const char* progname = "pg_query";
+ 
+-__thread sig_atomic_t pg_query_initialized = 0;
++__thread int pg_query_initialized = 0;
+ 
+-static pthread_key_t pg_query_thread_exit_key;
+ static void pg_query_thread_exit(void *key);
+ 
+ void pg_query_init(void)
+@@ -22,9 +18,6 @@ void pg_query_init(void)
+ 
+ 	MemoryContextInit();
+ 	SetDatabaseEncoding(PG_UTF8);
+-
+-	pthread_key_create(&pg_query_thread_exit_key, pg_query_thread_exit);
+-	pthread_setspecific(pg_query_thread_exit_key, TopMemoryContext);
+ }
+ 
+ void pg_query_free_top_memory_context(MemoryContext context)
+diff --git a/src/postgres/include/access/xlogdefs.h b/src/postgres/include/access/xlogdefs.h
 index a47e3ee..fc5925a 100644
---- a/internal/cparser/include/access/xlogdefs.h
-+++ b/internal/cparser/include/access/xlogdefs.h
+--- a/src/postgres/include/access/xlogdefs.h
++++ b/src/postgres/include/access/xlogdefs.h
 @@ -78,10 +78,7 @@ typedef uint16 RepOriginId;
  
  #if defined(O_DSYNC)
@@ -13,10 +43,10 @@ index a47e3ee..fc5925a 100644
  #else							/* !defined(OPEN_SYNC_FLAG) */
  /* Win32 only has O_DSYNC */
  #define OPEN_DATASYNC_FLAG		O_DSYNC
-diff --git a/internal/cparser/include/utils/elog.h b/internal/cparser/include/utils/elog.h
+diff --git a/src/postgres/include/utils/elog.h b/src/postgres/include/utils/elog.h
 index 9cfad3d..efc3057 100644
---- a/internal/cparser/include/utils/elog.h
-+++ b/internal/cparser/include/utils/elog.h
+--- a/src/postgres/include/utils/elog.h
++++ b/src/postgres/include/utils/elog.h
 @@ -312,13 +312,13 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
   */
  #define PG_TRY()  \
@@ -44,40 +74,10 @@ index 9cfad3d..efc3057 100644
  
  
  /* Stuff that error handlers might want to use */
-diff --git a/internal/cparser/pg_query.c b/internal/cparser/pg_query.c
-index e0069e8..8465a66 100644
---- a/internal/cparser/pg_query.c
-+++ b/internal/cparser/pg_query.c
-@@ -5,14 +5,10 @@
- #include <utils/memutils.h>
- #include <utils/memdebug.h>
- 
--#include <pthread.h>
--#include <signal.h>
--
- const char* progname = "pg_query";
- 
--__thread sig_atomic_t pg_query_initialized = 0;
-+__thread int pg_query_initialized = 0;
- 
--static pthread_key_t pg_query_thread_exit_key;
- static void pg_query_thread_exit(void *key);
- 
- void pg_query_init(void)
-@@ -22,9 +18,6 @@ void pg_query_init(void)
- 
- 	MemoryContextInit();
- 	SetDatabaseEncoding(PG_UTF8);
--
--	pthread_key_create(&pg_query_thread_exit_key, pg_query_thread_exit);
--	pthread_setspecific(pg_query_thread_exit_key, TopMemoryContext);
- }
- 
- void pg_query_free_top_memory_context(MemoryContext context)
-diff --git a/internal/cparser/src_backend_utils_error_elog.c b/internal/cparser/src_backend_utils_error_elog.c
+diff --git a/src/postgres/src_backend_utils_error_elog.c b/src/postgres/src_backend_utils_error_elog.c
 index 6dfd560..1330e5b 100644
---- a/internal/cparser/src_backend_utils_error_elog.c
-+++ b/internal/cparser/src_backend_utils_error_elog.c
+--- a/src/postgres/src_backend_utils_error_elog.c
++++ b/src/postgres/src_backend_utils_error_elog.c
 @@ -1444,7 +1444,7 @@ pg_re_throw(void)
  {
  	/* If possible, throw the error to the next outer setjmp handler */
@@ -87,10 +87,10 @@ index 6dfd560..1330e5b 100644
  	else
  	{
  		/*
-diff --git a/internal/cparser/src_port_strerror.c b/internal/cparser/src_port_strerror.c
+diff --git a/src/postgres/src_port_strerror.c b/src/postgres/src_port_strerror.c
 index 45686d3..171eea8 100644
---- a/internal/cparser/src_port_strerror.c
-+++ b/internal/cparser/src_port_strerror.c
+--- a/src/postgres/src_port_strerror.c
++++ b/src/postgres/src_port_strerror.c
 @@ -160,8 +160,6 @@ get_errno_symbol(int errnum)
  			return "EFAULT";
  		case EFBIG:
