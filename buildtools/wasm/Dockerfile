@@ -9,8 +9,12 @@ WORKDIR /workspace
 ADD internal/cparser .
 ADD buildtools/wasm/patch.txt patch.txt
 RUN patch -p3 < patch.txt
+# Bring in some of https://github.com/pganalyze/libpg_query/blob/15-latest/Makefile#L129
+RUN echo "#undef HAVE_LOCALE_T" >> include/pg_config.h && \
+    echo "#undef LOCALE_T_IN_XLOCALE" >> include/pg_config.h && \
+    echo "#undef WCSTOMBS_L_IN_XLOCALE" >> include/pg_config.h
 
-RUN CMD="$CC -Iinclude -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
+RUN CMD="$CC -Iinclude -fstack-protector -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     *.o \
