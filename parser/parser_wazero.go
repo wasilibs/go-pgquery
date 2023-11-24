@@ -197,23 +197,15 @@ func (abi *abi) pgQueryParse(input cString) (result string, err error) {
 	if !ok {
 		panic(errFailedRead)
 	}
-	parseTreePtr := binary.LittleEndian.Uint32(resBuf)
-	parseTreeEndPtr := parseTreePtr
-	for {
-		if b, ok := abi.wasmMemory.ReadByte(parseTreeEndPtr); !ok {
-			panic(errFailedRead)
-		} else if b == 0 {
-			break
-		}
-		parseTreeEndPtr++
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[8:])
+	if errPtr != 0 {
+		return "", newPgQueryError(abi.mod, errPtr)
 	}
 
-	buf, ok := abi.wasmMemory.Read(parseTreePtr, parseTreeEndPtr-parseTreePtr)
-	if !ok {
-		panic(errFailedRead)
-	}
+	result = readCStringPtr(abi.wasmMemory, uint32(resPtr))
 
-	return string(buf), nil
+	return
 }
 
 func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
@@ -243,7 +235,9 @@ func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
 		panic(errFailedRead)
 	}
 
-	return bytes.Clone(buf), nil
+	result = bytes.Clone(buf)
+
+	return
 }
 
 func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
@@ -273,7 +267,9 @@ func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
 		panic(errFailedRead)
 	}
 
-	return bytes.Clone(buf), nil
+	result = bytes.Clone(buf)
+
+	return
 }
 
 func (abi *abi) pgQueryNormalize(input cString) (result string, err error) {
