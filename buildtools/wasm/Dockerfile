@@ -6,15 +6,15 @@ ENV CFLAGS "${CFLAGS} -g -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
 ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
 
 WORKDIR /workspace
-RUN curl -L https://github.com/pganalyze/libpg_query/archive/refs/tags/15-4.2.3.tar.gz | tar -xz --strip-components 1 -C /workspace
-ADD buildtools/wasm/patch.txt patch.txt
-RUN patch -p1 < patch.txt
+#RUN curl -L https://github.com/pganalyze/libpg_query/archive/refs/tags/15-4.2.3.tar.gz | tar -xz --strip-components 1 -C /workspace
+ADD internal/cparser .
+ADD buildtools/wasm/patch2.txt patch.txt
+RUN patch -p3 < patch.txt
 
-RUN make build && \
-    $RANLIB libpg_query.a
+RUN $CC -Iinclude -Wno-deprecated-non-prototype -c $CFLAGS *.c
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
-    libpg_query.a \
+    *.o \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=pg_query_init \
@@ -36,4 +36,4 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
 RUN mv libpg_query-noopt.so libpg_query.so
 #RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop --asyncify -O3 libpg_query-noopt.so
 
-CMD ["bash", "-c", "cp libpg_query.a libpg_query.so /out/"]
+CMD ["bash", "-c", "cp libpg_query.so /out/"]
