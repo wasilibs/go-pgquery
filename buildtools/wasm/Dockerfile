@@ -10,7 +10,7 @@ ADD internal/cparser .
 ADD buildtools/wasm/patch.txt patch.txt
 RUN patch -p3 < patch.txt
 
-RUN CMD="$CC -Iinclude -fstack-protector -fno-strict-aliasing -fwrapv -fPIC -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
+RUN CMD="$CC -Iinclude -fno-strict-aliasing -fwrapv -fPIC -c $CFLAGS *.c" && echo $CMD && $CMD
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     *.o \
