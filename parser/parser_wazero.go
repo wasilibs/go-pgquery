@@ -120,6 +120,17 @@ func FingerprintToHexStr(input string) (result string, err error) {
 	return abi.pgQueryFingerprintToHexStr(inputC)
 }
 
+// HashXXH3_64 - Helper method to run XXH3 hash function (64-bit variant) on the given bytes, with the specified seed
+func HashXXH3_64(input []byte, seed uint64) (result uint64) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCStringFromBytes(input)
+	defer inputC.Close()
+
+	return uint64(abi.pgQueryHashXXH364(inputC, seed))
+}
+
 func newABI() *abi {
 	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
 	mod, err := wasmRT.InstantiateModule(context.Background(), wasmCompiled, cfg)
@@ -140,6 +151,7 @@ func newABI() *abi {
 		fPgQueryFreeNormalizeResult:     newLazyFunction(wasmRT, mod, "pg_query_free_normalize_result"),
 		fPgQueryFingerprint:             newLazyFunction(wasmRT, mod, "pg_query_fingerprint"),
 		fPgQueryFreeFingerprintResult:   newLazyFunction(wasmRT, mod, "pg_query_free_fingerprint_result"),
+		hashXXH364:                      newLazyFunction(wasmRT, mod, "XXH3_64bits_withSeed"),
 
 		malloc: newLazyFunction(wasmRT, mod, "malloc"),
 		free:   newLazyFunction(wasmRT, mod, "free"),
@@ -167,6 +179,7 @@ type abi struct {
 	fPgQueryFreeNormalizeResult     lazyFunction
 	fPgQueryFingerprint             lazyFunction
 	fPgQueryFreeFingerprintResult   lazyFunction
+	hashXXH364                      lazyFunction
 
 	malloc lazyFunction
 	free   lazyFunction
@@ -368,6 +381,13 @@ func (abi *abi) pgQueryFingerprintToHexStr(input cString) (result string, err er
 	return
 }
 
+func (abi *abi) pgQueryHashXXH364(input cString, seed uint64) int {
+	ctx := wasix_32v1.BackgroundContext()
+
+	res := abi.hashXXH364.Call3(ctx, uint64(input.ptr), uint64(input.length), seed)
+	return int(res)
+}
+
 func newPgQueryError(mod api.Module, errPtr uint32) error {
 	message := readCStringPtr(mod.Memory(), errPtr)
 	funcname := readCStringPtr(mod.Memory(), errPtr+4)
@@ -486,6 +506,21 @@ type cString struct {
 func (abi *abi) newCString(s string) cString {
 	ptr := uint32(abi.malloc.Call1(context.Background(), uint64(len(s)+1)))
 	if !abi.wasmMemory.WriteString(ptr, s) {
+		panic(errFailedWrite)
+	}
+	if !abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0) {
+		panic(errFailedWrite)
+	}
+	return cString{
+		ptr:    ptr,
+		length: len(s),
+		abi:    abi,
+	}
+}
+
+func (abi *abi) newCStringFromBytes(s []byte) cString {
+	ptr := uint32(abi.malloc.Call1(context.Background(), uint64(len(s)+1)))
+	if !abi.wasmMemory.Write(ptr, s) {
 		panic(errFailedWrite)
 	}
 	if !abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0) {
