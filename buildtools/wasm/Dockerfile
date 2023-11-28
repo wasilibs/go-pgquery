@@ -34,7 +34,6 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=__stack_pointer \
     -Wl,--export=__heap_base
 
-RUN mv libpg_query-noopt.so libpg_query.so
-#RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop --asyncify -O3 libpg_query-noopt.so
+RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop -O3 libpg_query-noopt.so
 
 CMD ["bash", "-c", "cp libpg_query.so /out/"]
