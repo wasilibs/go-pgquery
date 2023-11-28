@@ -109,23 +109,29 @@ func exportFunctions(builder wazero.HostModuleBuilder) {
 }
 
 var callbackSignalFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {
+	// We do not execute any signals against the wasm module so know this is never called.
 	panic("callback_signal")
 })
 
 var futexWaitFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {
+	// We do not execute the wasm module concurrently so know this is never called.
 	panic("futex_wait")
 })
 
 var futexWakeFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {
+	// We do not execute the wasm module concurrently so know this is never called.
 	panic("futex_wake")
 })
 
 var futexWakeAllFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {
+	// We do not execute the wasm module concurrently so know this is never called.
 	panic("futex_wake_all")
 })
 
-var procIDFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {
-	panic("proc_id")
+var procIDFn = api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+	resPtr := uint32(stack[0])
+	m.Memory().WriteUint32Le(resPtr, 1)
+	stack[0] = 0
 })
 
 var stackCheckpointFn = api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
