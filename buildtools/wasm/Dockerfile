@@ -6,12 +6,12 @@ ENV CFLAGS "${CFLAGS} -O3 -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
 ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
 
 WORKDIR /workspace
-RUN curl -L https://github.com/pganalyze/libpg_query/archive/refs/tags/15-4.2.3.tar.gz | tar -xz --strip-components 1 -C /workspace
+ADD internal/cparser .
 ADD buildtools/wasm/patch.txt patch.txt
-RUN patch -p1 < patch.txt
+RUN patch -p3 < patch.txt
 
-RUN make build && \
-    $RANLIB libpg_query.a
+RUN CMD="$CC -Iinclude -fstack-protector -fno-strict-aliasing -fwrapv -fPIC -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
+RUN $AR rcs libpg_query.a *.o
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     libpg_query.a \
@@ -30,6 +30,7 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=pg_query_free_normalize_result \
     -Wl,--export=pg_query_fingerprint \
     -Wl,--export=pg_query_free_fingerprint_result \
+    -Wl,--export=XXH3_64bits_withSeed \
     -Wl,--export=__stack_pointer \
     -Wl,--export=__heap_base
 
