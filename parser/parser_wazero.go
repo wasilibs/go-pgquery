@@ -1,8 +1,9 @@
-//go:build !tinygo.wasm && !pgquery_cgo
+//go:build !tinygo && !pgquery_cgo
 
 package parser
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -40,6 +41,83 @@ func init() {
 
 	wasmCompiled = code
 	wasmRT = rt
+}
+
+// ParseToJSON - Parses the given SQL statement into a parse tree (JSON format)
+func ParseToJSON(input string) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryParse(inputC)
+}
+
+// ParseToProtobuf - Parses the given SQL statement into a parse tree (Protobuf format)
+func ParseToProtobuf(input string) (result []byte, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryParseProtobuf(inputC)
+}
+
+// Scans the given SQL statement into a protobuf ScanResult
+func ScanToProtobuf(input string) (result []byte, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryScanProtobuf(inputC)
+}
+
+// ParsePlPgSqlToJSON - Parses the given PL/pgSQL function statement into a parse tree (JSON format)
+func ParsePlPgSqlToJSON(input string) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryParsePlPgSqlToJSON(inputC)
+}
+
+// Normalize the passed SQL statement to replace constant values with ? characters
+func Normalize(input string) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryNormalize(inputC)
+}
+
+// FingerprintToUInt64 - Fingerprint the passed SQL statement using the C extension and returns result as uint64
+func FingerprintToUInt64(input string) (result uint64, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryFingerprintToUint64(inputC)
+}
+
+// FingerprintToHexStr - Fingerprint the passed SQL statement using the C extension and returns result as hex string
+func FingerprintToHexStr(input string) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCString(input)
+	defer inputC.Close()
+
+	return abi.pgQueryFingerprintToHexStr(inputC)
 }
 
 func newABI() *abi {
@@ -119,23 +197,15 @@ func (abi *abi) pgQueryParse(input cString) (result string, err error) {
 	if !ok {
 		panic(errFailedRead)
 	}
-	parseTreePtr := binary.LittleEndian.Uint32(resBuf)
-	parseTreeEndPtr := parseTreePtr
-	for {
-		if b, ok := abi.wasmMemory.ReadByte(parseTreeEndPtr); !ok {
-			panic(errFailedRead)
-		} else if b == 0 {
-			break
-		}
-		parseTreeEndPtr++
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[8:])
+	if errPtr != 0 {
+		return "", newPgQueryError(abi.mod, errPtr)
 	}
 
-	buf, ok := abi.wasmMemory.Read(parseTreePtr, parseTreeEndPtr-parseTreePtr)
-	if !ok {
-		panic(errFailedRead)
-	}
+	result = readCStringPtr(abi.wasmMemory, uint32(resPtr))
 
-	return string(buf), nil
+	return
 }
 
 func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
@@ -165,7 +235,9 @@ func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
 		panic(errFailedRead)
 	}
 
-	return buf, nil
+	result = bytes.Clone(buf)
+
+	return
 }
 
 func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
@@ -195,7 +267,9 @@ func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
 		panic(errFailedRead)
 	}
 
-	return buf, nil
+	result = bytes.Clone(buf)
+
+	return
 }
 
 func (abi *abi) pgQueryNormalize(input cString) (result string, err error) {

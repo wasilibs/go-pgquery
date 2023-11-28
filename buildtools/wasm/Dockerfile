@@ -2,7 +2,7 @@ FROM ghcr.io/wasilibs/wasix-sdk:sha-fc94d60
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
-ENV CFLAGS "${CFLAGS} -g -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
+ENV CFLAGS "${CFLAGS} -O3 -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
 ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
 
 WORKDIR /workspace
@@ -33,7 +33,6 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=__stack_pointer \
     -Wl,--export=__heap_base
 
-RUN mv libpg_query-noopt.so libpg_query.so
-#RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop --asyncify -O3 libpg_query-noopt.so
+RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop -O3 libpg_query-noopt.so
 
-CMD ["bash", "-c", "cp libpg_query.a libpg_query.so /out/"]
+CMD ["bash", "-c", "cp libpg_query.so /out/"]

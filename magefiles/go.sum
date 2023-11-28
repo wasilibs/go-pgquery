@@ -1,6 +1,4 @@
 github.com/magefile/mage v1.15.1-0.20230912152418-9f54e0f83e2a h1:tdPcGgyiH0K+SbsJBBm2oPyEIOTAvLBwD9TuUwVtZho=
 github.com/magefile/mage v1.15.1-0.20230912152418-9f54e0f83e2a/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
-github.com/wasilibs/magefiles v0.0.0-20231002014139-1ecf8d2836c3 h1:zUMT4z+mG76XplXXrfbBsR1NMZjuxQ8xHXDoLiiuK/Q=
-github.com/wasilibs/magefiles v0.0.0-20231002014139-1ecf8d2836c3/go.mod h1:2jI0++B3L61weT+Bs5OYJ+yDT3BlU1nLqfonbe78Glc=
-github.com/wasilibs/magefiles v0.0.0-20231002021716-fc2b7cb0ab83 h1:PNRXmxe0OIXwaQ+67HuGNkkPFCuVLrsNYJOCWAhYZfE=
-github.com/wasilibs/magefiles v0.0.0-20231002021716-fc2b7cb0ab83/go.mod h1:2jI0++B3L61weT+Bs5OYJ+yDT3BlU1nLqfonbe78Glc=
+github.com/wasilibs/magefiles v0.0.0-20231128071155-0bcf9c2efa3c h1:JVcsdYgyq6D/uubdYVjqvhRhs9Q5KcLeb0muVOlh/g0=
+github.com/wasilibs/magefiles v0.0.0-20231128071155-0bcf9c2efa3c/go.mod h1:2jI0++B3L61weT+Bs5OYJ+yDT3BlU1nLqfonbe78Glc=
