@@ -42,7 +42,7 @@ jobs:
         run: go run mage check
         env:
           WASI_TEST_MODE: ${{ matrix.mode }}
-          CGO_ENABLED: ${{ startsWith(matrix.os, 'windows-') && '0' }}
+          CGO_ENABLED: ${{ startsWith(matrix.os, 'windows-') && '0' || '1' }}
 
   # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
   # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
