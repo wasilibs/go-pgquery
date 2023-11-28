@@ -11,9 +11,10 @@ ADD buildtools/wasm/patch.txt patch.txt
 RUN patch -p3 < patch.txt
 
 RUN CMD="$CC -Iinclude -fstack-protector -fno-strict-aliasing -fwrapv -fPIC -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
+RUN $AR rcs libpg_query.a *.o
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
-    *.o \
+    libpg_query.a \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=pg_query_init \
@@ -29,6 +30,7 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=pg_query_free_normalize_result \
     -Wl,--export=pg_query_fingerprint \
     -Wl,--export=pg_query_free_fingerprint_result \
+    -Wl,--export=XXH3_64bits_withSeed \
     -Wl,--export=__stack_pointer \
     -Wl,--export=__heap_base
 
