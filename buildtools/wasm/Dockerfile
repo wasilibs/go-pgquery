@@ -2,7 +2,7 @@ FROM ghcr.io/wasilibs/wasix-sdk:sha-fc94d60
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
-ENV CFLAGS "${CFLAGS} -O3 -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
+ENV CFLAGS "${CFLAGS} -O3 -msimd128 -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
 ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
 
 WORKDIR /workspace
