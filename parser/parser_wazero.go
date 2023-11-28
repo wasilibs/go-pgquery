@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"os"
+	"runtime"
+	"sync"
 
 	"github.com/wasilibs/go-pgquery/internal/wasix_32v1"
 	"github.com/wasilibs/go-pgquery/internal/wasm"
@@ -131,38 +133,47 @@ func HashXXH3_64(input []byte, seed uint64) (result uint64) {
 	return uint64(abi.pgQueryHashXXH364(inputC, seed))
 }
 
+var abiPool = sync.Pool{
+	New: func() interface{} {
+		cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
+		mod, err := wasmRT.InstantiateModule(context.Background(), wasmCompiled, cfg)
+		if err != nil {
+			panic(err)
+		}
+		res := &abi{
+			fPgQueryInit:                    newLazyFunction(wasmRT, mod, "pg_query_init"),
+			fPgQueryParse:                   newLazyFunction(wasmRT, mod, "pg_query_parse"),
+			fPgQueryFreeParseResult:         newLazyFunction(wasmRT, mod, "pg_query_free_parse_result"),
+			fPgQueryParseProtobuf:           newLazyFunction(wasmRT, mod, "pg_query_parse_protobuf"),
+			fPgQueryFreeProtobufParseResult: newLazyFunction(wasmRT, mod, "pg_query_free_protobuf_parse_result"),
+			fPgQueryParsePlpgsql:            newLazyFunction(wasmRT, mod, "pg_query_parse_plpgsql"),
+			fPgQueryFreePlpgsqlParseResult:  newLazyFunction(wasmRT, mod, "pg_query_free_plpgsql_parse_result"),
+			fPgQueryScan:                    newLazyFunction(wasmRT, mod, "pg_query_scan"),
+			fPgQueryFreeScanResult:          newLazyFunction(wasmRT, mod, "pg_query_free_scan_result"),
+			fPgQueryNormalize:               newLazyFunction(wasmRT, mod, "pg_query_normalize"),
+			fPgQueryFreeNormalizeResult:     newLazyFunction(wasmRT, mod, "pg_query_free_normalize_result"),
+			fPgQueryFingerprint:             newLazyFunction(wasmRT, mod, "pg_query_fingerprint"),
+			fPgQueryFreeFingerprintResult:   newLazyFunction(wasmRT, mod, "pg_query_free_fingerprint_result"),
+			hashXXH364:                      newLazyFunction(wasmRT, mod, "XXH3_64bits_withSeed"),
+
+			malloc: newLazyFunction(wasmRT, mod, "malloc"),
+			free:   newLazyFunction(wasmRT, mod, "free"),
+
+			mod:        mod,
+			wasmMemory: mod.Memory(),
+		}
+
+		res.pgQueryInit()
+		runtime.SetFinalizer(res, func(r *abi) {
+			r.mod.Close(context.Background())
+		})
+
+		return res
+	},
+}
+
 func newABI() *abi {
-	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
-	mod, err := wasmRT.InstantiateModule(context.Background(), wasmCompiled, cfg)
-	if err != nil {
-		panic(err)
-	}
-	abi := &abi{
-		fPgQueryInit:                    newLazyFunction(wasmRT, mod, "pg_query_init"),
-		fPgQueryParse:                   newLazyFunction(wasmRT, mod, "pg_query_parse"),
-		fPgQueryFreeParseResult:         newLazyFunction(wasmRT, mod, "pg_query_free_parse_result"),
-		fPgQueryParseProtobuf:           newLazyFunction(wasmRT, mod, "pg_query_parse_protobuf"),
-		fPgQueryFreeProtobufParseResult: newLazyFunction(wasmRT, mod, "pg_query_free_protobuf_parse_result"),
-		fPgQueryParsePlpgsql:            newLazyFunction(wasmRT, mod, "pg_query_parse_plpgsql"),
-		fPgQueryFreePlpgsqlParseResult:  newLazyFunction(wasmRT, mod, "pg_query_free_plpgsql_parse_result"),
-		fPgQueryScan:                    newLazyFunction(wasmRT, mod, "pg_query_scan"),
-		fPgQueryFreeScanResult:          newLazyFunction(wasmRT, mod, "pg_query_free_scan_result"),
-		fPgQueryNormalize:               newLazyFunction(wasmRT, mod, "pg_query_normalize"),
-		fPgQueryFreeNormalizeResult:     newLazyFunction(wasmRT, mod, "pg_query_free_normalize_result"),
-		fPgQueryFingerprint:             newLazyFunction(wasmRT, mod, "pg_query_fingerprint"),
-		fPgQueryFreeFingerprintResult:   newLazyFunction(wasmRT, mod, "pg_query_free_fingerprint_result"),
-		hashXXH364:                      newLazyFunction(wasmRT, mod, "XXH3_64bits_withSeed"),
-
-		malloc: newLazyFunction(wasmRT, mod, "malloc"),
-		free:   newLazyFunction(wasmRT, mod, "free"),
-
-		mod:        mod,
-		wasmMemory: mod.Memory(),
-	}
-
-	abi.pgQueryInit()
-
-	return abi
+	return abiPool.Get().(*abi)
 }
 
 type abi struct {
@@ -190,7 +201,8 @@ type abi struct {
 }
 
 func (abi *abi) Close() error {
-	return abi.mod.Close(context.Background())
+	abiPool.Put(abi)
+	return nil
 }
 
 func (abi *abi) pgQueryInit() {
