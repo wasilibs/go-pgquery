@@ -1,0 +1,14 @@
+diff --git a/internal/cparser/src_common_string.c b/internal/cparser/src_common_string.c
+index 7af813c..fc8f774 100644
+--- a/internal/cparser/src_common_string.c
++++ b/internal/cparser/src_common_string.c
+@@ -47,6 +47,9 @@ strtoint(const char *pg_restrict str, char **pg_restrict endptr, int base)
+ 	val = strtol(str, endptr, base);
+ 	if (val != (int) val)
+ 		errno = ERANGE;
++	// Largest possible int is 10 digits and minus sign.
++	if (*endptr && *endptr - str)
++	    errno = ERANGE;
+ 	return (int) val;
+ }
+ 
