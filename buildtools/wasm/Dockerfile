@@ -8,10 +8,17 @@ ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-
 WORKDIR /workspace
 ADD internal/cparser .
 ADD buildtools/wasm/patch.txt patch.txt
+ADD buildtools/wasm/patch-musl.txt patch-musl.txt
+ADD buildtools/wasm/patch-libpgquery.txt patch-libpgquery.txt
 RUN patch -p3 < patch.txt
+# Workaround bug in strtol in musl, used by wasi https://www.openwall.com/lists/musl/2023/12/01/1
+RUN patch -p3 < patch-musl.txt
+# Workaround obvious bug in libpgquery that seems to only cause problems with this toolchain
+# https://github.com/pganalyze/libpg_query/pull/223
+RUN patch -p3 < patch-libpgquery.txt
 
 RUN CMD="$CC -Iinclude -fstack-protector -fno-strict-aliasing -fwrapv -fPIC -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
-RUN $AR rcs libpg_query.a *.o
+RUN $AR rs libpg_query.a *.o
 
 RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     libpg_query.a \
