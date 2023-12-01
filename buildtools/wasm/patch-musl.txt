@@ -7,7 +7,7 @@ index 7af813c..fc8f774 100644
  	if (val != (int) val)
  		errno = ERANGE;
 +	// Largest possible int is 10 digits and minus sign.
-+	if (*endptr && *endptr - str)
++	if (*endptr && (*endptr - str) > 11)
 +	    errno = ERANGE;
  	return (int) val;
  }
