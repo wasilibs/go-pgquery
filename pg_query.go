@@ -3,15 +3,16 @@ package pg_query
 import (
 	"google.golang.org/protobuf/proto"
 
+	pganalyze "github.com/pganalyze/pg_query_go/v4"
 	"github.com/wasilibs/go-pgquery/parser"
 )
 
-func Scan(input string) (result *ScanResult, err error) {
+func Scan(input string) (result *pganalyze.ScanResult, err error) {
 	protobufScan, err := parser.ScanToProtobuf(input)
 	if err != nil {
 		return
 	}
-	result = &ScanResult{}
+	result = &pganalyze.ScanResult{}
 	err = proto.Unmarshal(protobufScan, result)
 	return
 }
@@ -22,13 +23,13 @@ func ParseToJSON(input string) (result string, err error) {
 }
 
 // Parse the given SQL statement into a parse tree (Go struct format)
-func Parse(input string) (tree *ParseResult, err error) {
+func Parse(input string) (tree *pganalyze.ParseResult, err error) {
 	protobufTree, err := parser.ParseToProtobuf(input)
 	if err != nil {
 		return
 	}
 
-	tree = &ParseResult{}
+	tree = &pganalyze.ParseResult{}
 	err = proto.Unmarshal(protobufTree, tree)
 	return
 }
