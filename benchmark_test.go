@@ -3,6 +3,8 @@ package pg_query_test
 import (
 	"testing"
 
+	pganalyze "github.com/pganalyze/pg_query_go/v4"
+
 	pg_query "github.com/wasilibs/go-pgquery"
 	"github.com/wasilibs/go-pgquery/parser"
 )
@@ -11,7 +13,7 @@ import (
 var (
 	err        error
 	resultStr  []byte
-	resultTree *pg_query.ParseResult
+	resultTree *pganalyze.ParseResult
 )
 
 func benchmarkParse(input string, b *testing.B) {

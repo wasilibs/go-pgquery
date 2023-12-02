@@ -44,6 +44,11 @@ can be changed to
 import "github.com/wasilibs/go-pgquery"
 ```
 
+Note that to allow users to write transformation logic targeting both libraries, this library
+returns parse trees using the types from pg_query_go. This means you will have both libraries
+in your requirements and will need to be careful calling the entry point functions like `Parse`
+from go-pgquery, not pg_query_go. This may change in the future.
+
 ### cgo
 
 This library also supports opting into using cgo to wrap libpg_query instead of using WebAssembly.

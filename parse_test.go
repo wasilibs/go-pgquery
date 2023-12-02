@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	pganalyze "github.com/pganalyze/pg_query_go/v4"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	pg_query "github.com/wasilibs/go-pgquery"
@@ -16,23 +17,23 @@ import (
 var parseTests = []struct {
 	input        string
 	expectedJSON string
-	expectedTree *pg_query.ParseResult
+	expectedTree *pganalyze.ParseResult
 }{
 	{
 		"SELECT 1",
 		`{"version":150001,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"A_Const":{"ival":{"ival":1},"location":7}},"location":7}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_SelectStmt{
-							SelectStmt: &pg_query.SelectStmt{
-								LimitOption: pg_query.LimitOption_LIMIT_OPTION_DEFAULT,
-								Op:          pg_query.SetOperation_SETOP_NONE,
-								TargetList: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithVal(
-										pg_query.MakeAConstIntNode(1, 7),
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_SelectStmt{
+							SelectStmt: &pganalyze.SelectStmt{
+								LimitOption: pganalyze.LimitOption_LIMIT_OPTION_DEFAULT,
+								Op:          pganalyze.SetOperation_SETOP_NONE,
+								TargetList: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithVal(
+										pganalyze.MakeAConstIntNode(1, 7),
 										7,
 									),
 								},
@@ -46,43 +47,43 @@ var parseTests = []struct {
 	{
 		"SELECT * FROM x WHERE z = 1",
 		`{"version":150001,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"A_Star":{}}],"location":7}},"location":7}}],"fromClause":[{"RangeVar":{"relname":"x","inh":true,"relpersistence":"p","location":14}}],"whereClause":{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"z"}}],"location":22}},"rexpr":{"A_Const":{"ival":{"ival":1},"location":26}},"location":24}},"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_SelectStmt{
-							SelectStmt: &pg_query.SelectStmt{
-								LimitOption: pg_query.LimitOption_LIMIT_OPTION_DEFAULT,
-								Op:          pg_query.SetOperation_SETOP_NONE,
-								TargetList: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithVal(
-										pg_query.MakeColumnRefNode(
-											[]*pg_query.Node{
-												pg_query.MakeAStarNode(),
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_SelectStmt{
+							SelectStmt: &pganalyze.SelectStmt{
+								LimitOption: pganalyze.LimitOption_LIMIT_OPTION_DEFAULT,
+								Op:          pganalyze.SetOperation_SETOP_NONE,
+								TargetList: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithVal(
+										pganalyze.MakeColumnRefNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeAStarNode(),
 											},
 											7,
 										),
 										7,
 									),
 								},
-								FromClause: []*pg_query.Node{
-									pg_query.MakeSimpleRangeVarNode("x", 14),
+								FromClause: []*pganalyze.Node{
+									pganalyze.MakeSimpleRangeVarNode("x", 14),
 								},
-								WhereClause: &pg_query.Node{
-									Node: &pg_query.Node_AExpr{
-										AExpr: &pg_query.A_Expr{
-											Kind: pg_query.A_Expr_Kind_AEXPR_OP,
-											Name: []*pg_query.Node{
-												pg_query.MakeStrNode("="),
+								WhereClause: &pganalyze.Node{
+									Node: &pganalyze.Node_AExpr{
+										AExpr: &pganalyze.A_Expr{
+											Kind: pganalyze.A_Expr_Kind_AEXPR_OP,
+											Name: []*pganalyze.Node{
+												pganalyze.MakeStrNode("="),
 											},
-											Lexpr: pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{
-													pg_query.MakeStrNode("z"),
+											Lexpr: pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{
+													pganalyze.MakeStrNode("z"),
 												},
 												22,
 											),
-											Rexpr:    pg_query.MakeAConstIntNode(1, 26),
+											Rexpr:    pganalyze.MakeAConstIntNode(1, 26),
 											Location: 24,
 										},
 									},
@@ -97,45 +98,45 @@ var parseTests = []struct {
 	{
 		`INSERT INTO "schema_index_stats" ("snapshot_id","schema_index_id","size_bytes") VALUES (11710849,8448632,16384),(11710849,8448633,16384) RETURNING id`,
 		`{"version":150001,"stmts":[{"stmt":{"InsertStmt":{"relation":{"relname":"schema_index_stats","inh":true,"relpersistence":"p","location":12},"cols":[{"ResTarget":{"name":"snapshot_id","location":34}},{"ResTarget":{"name":"schema_index_id","location":48}},{"ResTarget":{"name":"size_bytes","location":66}}],"selectStmt":{"SelectStmt":{"valuesLists":[{"List":{"items":[{"A_Const":{"ival":{"ival":11710849},"location":88}},{"A_Const":{"ival":{"ival":8448632},"location":97}},{"A_Const":{"ival":{"ival":16384},"location":105}}]}},{"List":{"items":[{"A_Const":{"ival":{"ival":11710849},"location":113}},{"A_Const":{"ival":{"ival":8448633},"location":122}},{"A_Const":{"ival":{"ival":16384},"location":130}}]}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}},"returningList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"String":{"sval":"id"}}],"location":147}},"location":147}}],"override":"OVERRIDING_NOT_SET"}}}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_InsertStmt{
-							InsertStmt: &pg_query.InsertStmt{
-								Relation: pg_query.MakeSimpleRangeVar("schema_index_stats", 12),
-								Cols: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithName("snapshot_id", 34),
-									pg_query.MakeResTargetNodeWithName("schema_index_id", 48),
-									pg_query.MakeResTargetNodeWithName("size_bytes", 66),
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_InsertStmt{
+							InsertStmt: &pganalyze.InsertStmt{
+								Relation: pganalyze.MakeSimpleRangeVar("schema_index_stats", 12),
+								Cols: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithName("snapshot_id", 34),
+									pganalyze.MakeResTargetNodeWithName("schema_index_id", 48),
+									pganalyze.MakeResTargetNodeWithName("size_bytes", 66),
 								},
-								Override: pg_query.OverridingKind_OVERRIDING_NOT_SET,
-								SelectStmt: &pg_query.Node{
-									Node: &pg_query.Node_SelectStmt{
-										SelectStmt: &pg_query.SelectStmt{
-											LimitOption: pg_query.LimitOption_LIMIT_OPTION_DEFAULT,
-											Op:          pg_query.SetOperation_SETOP_NONE,
-											ValuesLists: []*pg_query.Node{
-												pg_query.MakeListNode([]*pg_query.Node{
-													pg_query.MakeAConstIntNode(11710849, 88),
-													pg_query.MakeAConstIntNode(8448632, 97),
-													pg_query.MakeAConstIntNode(16384, 105),
+								Override: pganalyze.OverridingKind_OVERRIDING_NOT_SET,
+								SelectStmt: &pganalyze.Node{
+									Node: &pganalyze.Node_SelectStmt{
+										SelectStmt: &pganalyze.SelectStmt{
+											LimitOption: pganalyze.LimitOption_LIMIT_OPTION_DEFAULT,
+											Op:          pganalyze.SetOperation_SETOP_NONE,
+											ValuesLists: []*pganalyze.Node{
+												pganalyze.MakeListNode([]*pganalyze.Node{
+													pganalyze.MakeAConstIntNode(11710849, 88),
+													pganalyze.MakeAConstIntNode(8448632, 97),
+													pganalyze.MakeAConstIntNode(16384, 105),
 												}),
-												pg_query.MakeListNode([]*pg_query.Node{
-													pg_query.MakeAConstIntNode(11710849, 113),
-													pg_query.MakeAConstIntNode(8448633, 122),
-													pg_query.MakeAConstIntNode(16384, 130),
+												pganalyze.MakeListNode([]*pganalyze.Node{
+													pganalyze.MakeAConstIntNode(11710849, 113),
+													pganalyze.MakeAConstIntNode(8448633, 122),
+													pganalyze.MakeAConstIntNode(16384, 130),
 												}),
 											},
 										},
 									},
 								},
-								ReturningList: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithVal(
-										pg_query.MakeColumnRefNode(
-											[]*pg_query.Node{
-												pg_query.MakeStrNode("id"),
+								ReturningList: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithVal(
+										pganalyze.MakeColumnRefNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeStrNode("id"),
 											},
 											147,
 										),
@@ -152,44 +153,44 @@ var parseTests = []struct {
 	{
 		"SELECT * FROM x WHERE y IN ($1)",
 		`{"version":150001,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"A_Star":{}}],"location":7}},"location":7}}],"fromClause":[{"RangeVar":{"relname":"x","inh":true,"relpersistence":"p","location":14}}],"whereClause":{"A_Expr":{"kind":"AEXPR_IN","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"y"}}],"location":22}},"rexpr":{"List":{"items":[{"ParamRef":{"number":1,"location":28}}]}},"location":24}},"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_SelectStmt{
-							SelectStmt: &pg_query.SelectStmt{
-								LimitOption: pg_query.LimitOption_LIMIT_OPTION_DEFAULT,
-								Op:          pg_query.SetOperation_SETOP_NONE,
-								TargetList: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithVal(
-										pg_query.MakeColumnRefNode(
-											[]*pg_query.Node{
-												pg_query.MakeAStarNode(),
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_SelectStmt{
+							SelectStmt: &pganalyze.SelectStmt{
+								LimitOption: pganalyze.LimitOption_LIMIT_OPTION_DEFAULT,
+								Op:          pganalyze.SetOperation_SETOP_NONE,
+								TargetList: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithVal(
+										pganalyze.MakeColumnRefNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeAStarNode(),
 											},
 											7,
 										),
 										7,
 									),
 								},
-								FromClause: []*pg_query.Node{
-									pg_query.MakeSimpleRangeVarNode("x", 14),
+								FromClause: []*pganalyze.Node{
+									pganalyze.MakeSimpleRangeVarNode("x", 14),
 								},
-								WhereClause: &pg_query.Node{
-									Node: &pg_query.Node_AExpr{
-										AExpr: &pg_query.A_Expr{
-											Kind: pg_query.A_Expr_Kind_AEXPR_IN,
-											Name: []*pg_query.Node{
-												pg_query.MakeStrNode("="),
+								WhereClause: &pganalyze.Node{
+									Node: &pganalyze.Node_AExpr{
+										AExpr: &pganalyze.A_Expr{
+											Kind: pganalyze.A_Expr_Kind_AEXPR_IN,
+											Name: []*pganalyze.Node{
+												pganalyze.MakeStrNode("="),
 											},
-											Lexpr: pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{
-													pg_query.MakeStrNode("y"),
+											Lexpr: pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{
+													pganalyze.MakeStrNode("y"),
 												},
 												22,
 											),
-											Rexpr: pg_query.MakeListNode([]*pg_query.Node{
-												pg_query.MakeParamRefNode(1, 28),
+											Rexpr: pganalyze.MakeListNode([]*pganalyze.Node{
+												pganalyze.MakeParamRefNode(1, 28),
 											}),
 											Location: 24,
 										},
@@ -216,73 +217,73 @@ var parseTests = []struct {
 						AND pg_catalog.pg_table_is_visible(c.oid)
 			ORDER BY 1,2;`,
 		`{"version":150001,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"name":"Schema","val":{"ColumnRef":{"fields":[{"String":{"sval":"n"}},{"String":{"sval":"nspname"}}],"location":7}},"location":7}},{"ResTarget":{"name":"Name","val":{"ColumnRef":{"fields":[{"String":{"sval":"c"}},{"String":{"sval":"relname"}}],"location":36}},"location":36}},{"ResTarget":{"name":"Type","val":{"CaseExpr":{"arg":{"ColumnRef":{"fields":[{"String":{"sval":"c"}},{"String":{"sval":"relkind"}}],"location":68}},"args":[{"CaseWhen":{"expr":{"A_Const":{"sval":{"sval":"r"},"location":83}},"result":{"A_Const":{"sval":{"sval":"table"},"location":92}},"location":78}},{"CaseWhen":{"expr":{"A_Const":{"sval":{"sval":"v"},"location":105}},"result":{"A_Const":{"sval":{"sval":"view"},"location":114}},"location":100}},{"CaseWhen":{"expr":{"A_Const":{"sval":{"sval":"m"},"location":126}},"result":{"A_Const":{"sval":{"sval":"materialized view"},"location":135}},"location":121}},{"CaseWhen":{"expr":{"A_Const":{"sval":{"sval":"i"},"location":160}},"result":{"A_Const":{"sval":{"sval":"index"},"location":169}},"location":155}},{"CaseWhen":{"expr":{"A_Const":{"sval":{"sval":"S"},"location":182}},"result":{"A_Const":{"sval":{"sval":"sequence"},"location":191}},"location":177}},{"CaseWhen":{"expr":{"A_Const":{"sval":{"sval":"s"},"location":207}},"result":{"A_Const":{"sval":{"sval":"special"},"location":216}},"location":202}},{"CaseWhen":{"expr":{"A_Const":{"sval":{"sval":"f"},"location":231}},"result":{"A_Const":{"sval":{"sval":"foreign table"},"location":240}},"location":226}}],"location":63}},"location":63}},{"ResTarget":{"name":"Owner","val":{"FuncCall":{"funcname":[{"String":{"sval":"pg_catalog"}},{"String":{"sval":"pg_get_userbyid"}}],"args":[{"ColumnRef":{"fields":[{"String":{"sval":"c"}},{"String":{"sval":"relowner"}}],"location":304}}],"funcformat":"COERCE_EXPLICIT_CALL","location":277}},"location":277}}],"fromClause":[{"JoinExpr":{"jointype":"JOIN_LEFT","larg":{"RangeVar":{"schemaname":"pg_catalog","relname":"pg_class","inh":true,"relpersistence":"p","alias":{"aliasname":"c"},"location":336}},"rarg":{"RangeVar":{"schemaname":"pg_catalog","relname":"pg_namespace","inh":true,"relpersistence":"p","alias":{"aliasname":"n"},"location":374}},"quals":{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"n"}},{"String":{"sval":"oid"}}],"location":403}},"rexpr":{"ColumnRef":{"fields":[{"String":{"sval":"c"}},{"String":{"sval":"relnamespace"}}],"location":411}},"location":409}}}}],"whereClause":{"BoolExpr":{"boolop":"AND_EXPR","args":[{"A_Expr":{"kind":"AEXPR_IN","name":[{"String":{"sval":"="}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"c"}},{"String":{"sval":"relkind"}}],"location":435}},"rexpr":{"List":{"items":[{"A_Const":{"sval":{"sval":"r"},"location":449}},{"A_Const":{"sval":{"sval":""},"location":453}}]}},"location":445}},{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"\u003c\u003e"}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"n"}},{"String":{"sval":"nspname"}}],"location":467}},"rexpr":{"A_Const":{"sval":{"sval":"pg_catalog"},"location":480}},"location":477}},{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"\u003c\u003e"}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"n"}},{"String":{"sval":"nspname"}}],"location":503}},"rexpr":{"A_Const":{"sval":{"sval":"information_schema"},"location":516}},"location":513}},{"A_Expr":{"kind":"AEXPR_OP","name":[{"String":{"sval":"!~"}}],"lexpr":{"ColumnRef":{"fields":[{"String":{"sval":"n"}},{"String":{"sval":"nspname"}}],"location":547}},"rexpr":{"A_Const":{"sval":{"sval":"^pg_toast"},"location":560}},"location":557}},{"FuncCall":{"funcname":[{"String":{"sval":"pg_catalog"}},{"String":{"sval":"pg_table_is_visible"}}],"args":[{"ColumnRef":{"fields":[{"String":{"sval":"c"}},{"String":{"sval":"oid"}}],"location":613}}],"funcformat":"COERCE_EXPLICIT_CALL","location":582}}],"location":463}},"sortClause":[{"SortBy":{"node":{"A_Const":{"ival":{"ival":1},"location":632}},"sortby_dir":"SORTBY_DEFAULT","sortby_nulls":"SORTBY_NULLS_DEFAULT","location":-1}},{"SortBy":{"node":{"A_Const":{"ival":{"ival":2},"location":634}},"sortby_dir":"SORTBY_DEFAULT","sortby_nulls":"SORTBY_NULLS_DEFAULT","location":-1}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}},"stmt_len":635}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_SelectStmt{
-							SelectStmt: &pg_query.SelectStmt{
-								LimitOption: pg_query.LimitOption_LIMIT_OPTION_DEFAULT,
-								Op:          pg_query.SetOperation_SETOP_NONE,
-								TargetList: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithNameAndVal(
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_SelectStmt{
+							SelectStmt: &pganalyze.SelectStmt{
+								LimitOption: pganalyze.LimitOption_LIMIT_OPTION_DEFAULT,
+								Op:          pganalyze.SetOperation_SETOP_NONE,
+								TargetList: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithNameAndVal(
 										"Schema",
-										pg_query.MakeColumnRefNode(
-											[]*pg_query.Node{
-												pg_query.MakeStrNode("n"),
-												pg_query.MakeStrNode("nspname"),
+										pganalyze.MakeColumnRefNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeStrNode("n"),
+												pganalyze.MakeStrNode("nspname"),
 											},
 											7,
 										),
 										7,
 									),
-									pg_query.MakeResTargetNodeWithNameAndVal(
+									pganalyze.MakeResTargetNodeWithNameAndVal(
 										"Name",
-										pg_query.MakeColumnRefNode(
-											[]*pg_query.Node{
-												pg_query.MakeStrNode("c"),
-												pg_query.MakeStrNode("relname"),
+										pganalyze.MakeColumnRefNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeStrNode("c"),
+												pganalyze.MakeStrNode("relname"),
 											},
 											36,
 										),
 										36,
 									),
-									pg_query.MakeResTargetNodeWithNameAndVal(
+									pganalyze.MakeResTargetNodeWithNameAndVal(
 										"Type",
-										pg_query.MakeCaseExprNode(
-											pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{
-													pg_query.MakeStrNode("c"),
-													pg_query.MakeStrNode("relkind"),
+										pganalyze.MakeCaseExprNode(
+											pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{
+													pganalyze.MakeStrNode("c"),
+													pganalyze.MakeStrNode("relkind"),
 												},
 												68,
 											),
-											[]*pg_query.Node{
-												pg_query.MakeCaseWhenNode(pg_query.MakeAConstStrNode("r", 83), pg_query.MakeAConstStrNode("table", 92), 78),
-												pg_query.MakeCaseWhenNode(pg_query.MakeAConstStrNode("v", 105), pg_query.MakeAConstStrNode("view", 114), 100),
-												pg_query.MakeCaseWhenNode(pg_query.MakeAConstStrNode("m", 126), pg_query.MakeAConstStrNode("materialized view", 135), 121),
-												pg_query.MakeCaseWhenNode(pg_query.MakeAConstStrNode("i", 160), pg_query.MakeAConstStrNode("index", 169), 155),
-												pg_query.MakeCaseWhenNode(pg_query.MakeAConstStrNode("S", 182), pg_query.MakeAConstStrNode("sequence", 191), 177),
-												pg_query.MakeCaseWhenNode(pg_query.MakeAConstStrNode("s", 207), pg_query.MakeAConstStrNode("special", 216), 202),
-												pg_query.MakeCaseWhenNode(pg_query.MakeAConstStrNode("f", 231), pg_query.MakeAConstStrNode("foreign table", 240), 226),
+											[]*pganalyze.Node{
+												pganalyze.MakeCaseWhenNode(pganalyze.MakeAConstStrNode("r", 83), pganalyze.MakeAConstStrNode("table", 92), 78),
+												pganalyze.MakeCaseWhenNode(pganalyze.MakeAConstStrNode("v", 105), pganalyze.MakeAConstStrNode("view", 114), 100),
+												pganalyze.MakeCaseWhenNode(pganalyze.MakeAConstStrNode("m", 126), pganalyze.MakeAConstStrNode("materialized view", 135), 121),
+												pganalyze.MakeCaseWhenNode(pganalyze.MakeAConstStrNode("i", 160), pganalyze.MakeAConstStrNode("index", 169), 155),
+												pganalyze.MakeCaseWhenNode(pganalyze.MakeAConstStrNode("S", 182), pganalyze.MakeAConstStrNode("sequence", 191), 177),
+												pganalyze.MakeCaseWhenNode(pganalyze.MakeAConstStrNode("s", 207), pganalyze.MakeAConstStrNode("special", 216), 202),
+												pganalyze.MakeCaseWhenNode(pganalyze.MakeAConstStrNode("f", 231), pganalyze.MakeAConstStrNode("foreign table", 240), 226),
 											},
 											63,
 										),
 										63,
 									),
-									pg_query.MakeResTargetNodeWithNameAndVal(
+									pganalyze.MakeResTargetNodeWithNameAndVal(
 										"Owner",
-										pg_query.MakeFuncCallNode(
-											[]*pg_query.Node{
-												pg_query.MakeStrNode("pg_catalog"),
-												pg_query.MakeStrNode("pg_get_userbyid"),
+										pganalyze.MakeFuncCallNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeStrNode("pg_catalog"),
+												pganalyze.MakeStrNode("pg_get_userbyid"),
 											},
-											[]*pg_query.Node{
-												pg_query.MakeColumnRefNode(
-													[]*pg_query.Node{
-														pg_query.MakeStrNode("c"),
-														pg_query.MakeStrNode("relowner"),
+											[]*pganalyze.Node{
+												pganalyze.MakeColumnRefNode(
+													[]*pganalyze.Node{
+														pganalyze.MakeStrNode("c"),
+														pganalyze.MakeStrNode("relowner"),
 													},
 													304,
 												),
@@ -292,82 +293,82 @@ var parseTests = []struct {
 										277,
 									),
 								},
-								FromClause: []*pg_query.Node{
-									pg_query.MakeJoinExprNode(
-										pg_query.JoinType_JOIN_LEFT,
-										pg_query.MakeFullRangeVarNode("pg_catalog", "pg_class", "c", 336),
-										pg_query.MakeFullRangeVarNode("pg_catalog", "pg_namespace", "n", 374),
-										pg_query.MakeAExprNode(
-											pg_query.A_Expr_Kind_AEXPR_OP,
-											[]*pg_query.Node{
-												pg_query.MakeStrNode("="),
+								FromClause: []*pganalyze.Node{
+									pganalyze.MakeJoinExprNode(
+										pganalyze.JoinType_JOIN_LEFT,
+										pganalyze.MakeFullRangeVarNode("pg_catalog", "pg_class", "c", 336),
+										pganalyze.MakeFullRangeVarNode("pg_catalog", "pg_namespace", "n", 374),
+										pganalyze.MakeAExprNode(
+											pganalyze.A_Expr_Kind_AEXPR_OP,
+											[]*pganalyze.Node{
+												pganalyze.MakeStrNode("="),
 											},
-											pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{pg_query.MakeStrNode("n"), pg_query.MakeStrNode("oid")},
+											pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{pganalyze.MakeStrNode("n"), pganalyze.MakeStrNode("oid")},
 												403,
 											),
-											pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{pg_query.MakeStrNode("c"), pg_query.MakeStrNode("relnamespace")},
+											pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{pganalyze.MakeStrNode("c"), pganalyze.MakeStrNode("relnamespace")},
 												411,
 											),
 											409,
 										),
 									),
 								},
-								WhereClause: pg_query.MakeBoolExprNode(
-									pg_query.BoolExprType_AND_EXPR,
-									[]*pg_query.Node{
-										pg_query.MakeAExprNode(
-											pg_query.A_Expr_Kind_AEXPR_IN,
-											[]*pg_query.Node{pg_query.MakeStrNode("=")},
-											pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{pg_query.MakeStrNode("c"), pg_query.MakeStrNode("relkind")},
+								WhereClause: pganalyze.MakeBoolExprNode(
+									pganalyze.BoolExprType_AND_EXPR,
+									[]*pganalyze.Node{
+										pganalyze.MakeAExprNode(
+											pganalyze.A_Expr_Kind_AEXPR_IN,
+											[]*pganalyze.Node{pganalyze.MakeStrNode("=")},
+											pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{pganalyze.MakeStrNode("c"), pganalyze.MakeStrNode("relkind")},
 												435,
 											),
-											pg_query.MakeListNode([]*pg_query.Node{
-												pg_query.MakeAConstStrNode("r", 449),
-												pg_query.MakeAConstStrNode("", 453),
+											pganalyze.MakeListNode([]*pganalyze.Node{
+												pganalyze.MakeAConstStrNode("r", 449),
+												pganalyze.MakeAConstStrNode("", 453),
 											}),
 											445,
 										),
-										pg_query.MakeAExprNode(
-											pg_query.A_Expr_Kind_AEXPR_OP,
-											[]*pg_query.Node{pg_query.MakeStrNode("<>")},
-											pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{pg_query.MakeStrNode("n"), pg_query.MakeStrNode("nspname")},
+										pganalyze.MakeAExprNode(
+											pganalyze.A_Expr_Kind_AEXPR_OP,
+											[]*pganalyze.Node{pganalyze.MakeStrNode("<>")},
+											pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{pganalyze.MakeStrNode("n"), pganalyze.MakeStrNode("nspname")},
 												467,
 											),
-											pg_query.MakeAConstStrNode("pg_catalog", 480),
+											pganalyze.MakeAConstStrNode("pg_catalog", 480),
 											477,
 										),
-										pg_query.MakeAExprNode(
-											pg_query.A_Expr_Kind_AEXPR_OP,
-											[]*pg_query.Node{pg_query.MakeStrNode("<>")},
-											pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{pg_query.MakeStrNode("n"), pg_query.MakeStrNode("nspname")},
+										pganalyze.MakeAExprNode(
+											pganalyze.A_Expr_Kind_AEXPR_OP,
+											[]*pganalyze.Node{pganalyze.MakeStrNode("<>")},
+											pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{pganalyze.MakeStrNode("n"), pganalyze.MakeStrNode("nspname")},
 												503,
 											),
-											pg_query.MakeAConstStrNode("information_schema", 516),
+											pganalyze.MakeAConstStrNode("information_schema", 516),
 											513,
 										),
-										pg_query.MakeAExprNode(
-											pg_query.A_Expr_Kind_AEXPR_OP,
-											[]*pg_query.Node{pg_query.MakeStrNode("!~")},
-											pg_query.MakeColumnRefNode(
-												[]*pg_query.Node{pg_query.MakeStrNode("n"), pg_query.MakeStrNode("nspname")},
+										pganalyze.MakeAExprNode(
+											pganalyze.A_Expr_Kind_AEXPR_OP,
+											[]*pganalyze.Node{pganalyze.MakeStrNode("!~")},
+											pganalyze.MakeColumnRefNode(
+												[]*pganalyze.Node{pganalyze.MakeStrNode("n"), pganalyze.MakeStrNode("nspname")},
 												547,
 											),
-											pg_query.MakeAConstStrNode("^pg_toast", 560),
+											pganalyze.MakeAConstStrNode("^pg_toast", 560),
 											557,
 										),
-										pg_query.MakeFuncCallNode(
-											[]*pg_query.Node{
-												pg_query.MakeStrNode("pg_catalog"),
-												pg_query.MakeStrNode("pg_table_is_visible"),
+										pganalyze.MakeFuncCallNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeStrNode("pg_catalog"),
+												pganalyze.MakeStrNode("pg_table_is_visible"),
 											},
-											[]*pg_query.Node{
-												pg_query.MakeColumnRefNode(
-													[]*pg_query.Node{pg_query.MakeStrNode("c"), pg_query.MakeStrNode("oid")},
+											[]*pganalyze.Node{
+												pganalyze.MakeColumnRefNode(
+													[]*pganalyze.Node{pganalyze.MakeStrNode("c"), pganalyze.MakeStrNode("oid")},
 													613,
 												),
 											},
@@ -376,9 +377,9 @@ var parseTests = []struct {
 									},
 									463,
 								),
-								SortClause: []*pg_query.Node{
-									pg_query.MakeSortByNode(pg_query.MakeAConstIntNode(1, 632), pg_query.SortByDir_SORTBY_DEFAULT, pg_query.SortByNulls_SORTBY_NULLS_DEFAULT, -1),
-									pg_query.MakeSortByNode(pg_query.MakeAConstIntNode(2, 634), pg_query.SortByDir_SORTBY_DEFAULT, pg_query.SortByNulls_SORTBY_NULLS_DEFAULT, -1),
+								SortClause: []*pganalyze.Node{
+									pganalyze.MakeSortByNode(pganalyze.MakeAConstIntNode(1, 632), pganalyze.SortByDir_SORTBY_DEFAULT, pganalyze.SortByNulls_SORTBY_NULLS_DEFAULT, -1),
+									pganalyze.MakeSortByNode(pganalyze.MakeAConstIntNode(2, 634), pganalyze.SortByDir_SORTBY_DEFAULT, pganalyze.SortByNulls_SORTBY_NULLS_DEFAULT, -1),
 								},
 							},
 						},
@@ -398,30 +399,30 @@ var parseTests = []struct {
 		END;
 		$$;`,
 		`{"version":150001,"stmts":[{"stmt":{"CreateFunctionStmt":{"funcname":[{"String":{"sval":"change_trigger_v2"}}],"returnType":{"names":[{"String":{"sval":"trigger"}}],"typemod":-1,"location":44},"options":[{"DefElem":{"defname":"language","arg":{"String":{"sval":"plpgsql"}},"defaction":"DEFELEM_UNSPEC","location":53}},{"DefElem":{"defname":"as","arg":{"List":{"items":[{"String":{"sval":"\n\t\tDECLARE\n\t\tBEGIN\n\t\t\tPERFORM 'dummy';\n\t\tEND;\n\t\t"}}]}},"defaction":"DEFELEM_UNSPEC","location":71}}]}},"stmt_len":126}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_CreateFunctionStmt{
-							CreateFunctionStmt: &pg_query.CreateFunctionStmt{
-								Funcname: []*pg_query.Node{
-									pg_query.MakeStrNode("change_trigger_v2"),
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_CreateFunctionStmt{
+							CreateFunctionStmt: &pganalyze.CreateFunctionStmt{
+								Funcname: []*pganalyze.Node{
+									pganalyze.MakeStrNode("change_trigger_v2"),
 								},
-								ReturnType: &pg_query.TypeName{
-									Names: []*pg_query.Node{
-										pg_query.MakeStrNode("trigger"),
+								ReturnType: &pganalyze.TypeName{
+									Names: []*pganalyze.Node{
+										pganalyze.MakeStrNode("trigger"),
 									},
 									Typemod:  -1,
 									Location: 44,
 								},
-								Options: []*pg_query.Node{
-									pg_query.MakeSimpleDefElemNode("language", pg_query.MakeStrNode("plpgsql"), 53),
-									pg_query.MakeSimpleDefElemNode(
+								Options: []*pganalyze.Node{
+									pganalyze.MakeSimpleDefElemNode("language", pganalyze.MakeStrNode("plpgsql"), 53),
+									pganalyze.MakeSimpleDefElemNode(
 										"as",
-										pg_query.MakeListNode(
-											[]*pg_query.Node{
-												pg_query.MakeStrNode("\n\t\tDECLARE\n\t\tBEGIN\n\t\t\tPERFORM 'dummy';\n\t\tEND;\n\t\t"),
+										pganalyze.MakeListNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeStrNode("\n\t\tDECLARE\n\t\tBEGIN\n\t\t\tPERFORM 'dummy';\n\t\tEND;\n\t\t"),
 											},
 										),
 										71,
@@ -441,62 +442,62 @@ var parseTests = []struct {
 			 user_id integer DEFAULT 0 NOT NULL,
 			 created_at timestamp without time zone NOT NULL);`,
 		`{"version":150001,"stmts":[{"stmt":{"CreateStmt":{"relation":{"relname":"test","inh":true,"relpersistence":"p","location":13},"tableElts":[{"ColumnDef":{"colname":"id","typeName":{"names":[{"String":{"sval":"serial"}}],"typemod":-1,"location":27},"is_local":true,"constraints":[{"Constraint":{"contype":"CONSTR_PRIMARY","location":34}}],"location":24}},{"ColumnDef":{"colname":"user_id","typeName":{"names":[{"String":{"sval":"pg_catalog"}},{"String":{"sval":"int4"}}],"typemod":-1,"location":59},"is_local":true,"constraints":[{"Constraint":{"contype":"CONSTR_DEFAULT","location":67,"raw_expr":{"A_Const":{"ival":{},"location":75}}}},{"Constraint":{"contype":"CONSTR_NOTNULL","location":77}}],"location":51}},{"ColumnDef":{"colname":"created_at","typeName":{"names":[{"String":{"sval":"pg_catalog"}},{"String":{"sval":"timestamp"}}],"typemod":-1,"location":102},"is_local":true,"constraints":[{"Constraint":{"contype":"CONSTR_NOTNULL","location":130}}],"location":91}}],"oncommit":"ONCOMMIT_NOOP"}},"stmt_len":139}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_CreateStmt{
-							CreateStmt: &pg_query.CreateStmt{
-								Relation: pg_query.MakeSimpleRangeVar("test", 13),
-								TableElts: []*pg_query.Node{
-									pg_query.MakeSimpleColumnDefNode(
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_CreateStmt{
+							CreateStmt: &pganalyze.CreateStmt{
+								Relation: pganalyze.MakeSimpleRangeVar("test", 13),
+								TableElts: []*pganalyze.Node{
+									pganalyze.MakeSimpleColumnDefNode(
 										"id",
-										&pg_query.TypeName{
-											Names: []*pg_query.Node{
-												pg_query.MakeStrNode("serial"),
+										&pganalyze.TypeName{
+											Names: []*pganalyze.Node{
+												pganalyze.MakeStrNode("serial"),
 											},
 											Typemod:  -1,
 											Location: 27,
 										},
-										[]*pg_query.Node{
-											pg_query.MakePrimaryKeyConstraintNode(34),
+										[]*pganalyze.Node{
+											pganalyze.MakePrimaryKeyConstraintNode(34),
 										},
 										24,
 									),
-									pg_query.MakeSimpleColumnDefNode(
+									pganalyze.MakeSimpleColumnDefNode(
 										"user_id",
-										&pg_query.TypeName{
-											Names: []*pg_query.Node{
-												pg_query.MakeStrNode("pg_catalog"),
-												pg_query.MakeStrNode("int4"),
+										&pganalyze.TypeName{
+											Names: []*pganalyze.Node{
+												pganalyze.MakeStrNode("pg_catalog"),
+												pganalyze.MakeStrNode("int4"),
 											},
 											Typemod:  -1,
 											Location: 59,
 										},
-										[]*pg_query.Node{
-											pg_query.MakeDefaultConstraintNode(pg_query.MakeAConstIntNode(0, 75), 67),
-											pg_query.MakeNotNullConstraintNode(77),
+										[]*pganalyze.Node{
+											pganalyze.MakeDefaultConstraintNode(pganalyze.MakeAConstIntNode(0, 75), 67),
+											pganalyze.MakeNotNullConstraintNode(77),
 										},
 										51,
 									),
-									pg_query.MakeSimpleColumnDefNode(
+									pganalyze.MakeSimpleColumnDefNode(
 										"created_at",
-										&pg_query.TypeName{
-											Names: []*pg_query.Node{
-												pg_query.MakeStrNode("pg_catalog"),
-												pg_query.MakeStrNode("timestamp"),
+										&pganalyze.TypeName{
+											Names: []*pganalyze.Node{
+												pganalyze.MakeStrNode("pg_catalog"),
+												pganalyze.MakeStrNode("timestamp"),
 											},
 											Typemod:  -1,
 											Location: 102,
 										},
-										[]*pg_query.Node{
-											pg_query.MakeNotNullConstraintNode(130),
+										[]*pganalyze.Node{
+											pganalyze.MakeNotNullConstraintNode(130),
 										},
 										91,
 									),
 								},
-								Oncommit: pg_query.OnCommitAction_ONCOMMIT_NOOP,
+								Oncommit: pganalyze.OnCommitAction_ONCOMMIT_NOOP,
 							},
 						},
 					},
@@ -508,32 +509,32 @@ var parseTests = []struct {
 	{
 		`SELECT * FROM a(1)`,
 		`{"version":150001,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"ColumnRef":{"fields":[{"A_Star":{}}],"location":7}},"location":7}}],"fromClause":[{"RangeFunction":{"functions":[{"List":{"items":[{"FuncCall":{"funcname":[{"String":{"sval":"a"}}],"args":[{"A_Const":{"ival":{"ival":1},"location":16}}],"funcformat":"COERCE_EXPLICIT_CALL","location":14}},{}]}}]}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_SelectStmt{
-							SelectStmt: &pg_query.SelectStmt{
-								LimitOption: pg_query.LimitOption_LIMIT_OPTION_DEFAULT,
-								Op:          pg_query.SetOperation_SETOP_NONE,
-								TargetList: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithVal(
-										pg_query.MakeColumnRefNode(
-											[]*pg_query.Node{
-												pg_query.MakeAStarNode(),
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_SelectStmt{
+							SelectStmt: &pganalyze.SelectStmt{
+								LimitOption: pganalyze.LimitOption_LIMIT_OPTION_DEFAULT,
+								Op:          pganalyze.SetOperation_SETOP_NONE,
+								TargetList: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithVal(
+										pganalyze.MakeColumnRefNode(
+											[]*pganalyze.Node{
+												pganalyze.MakeAStarNode(),
 											},
 											7,
 										),
 										7,
 									),
 								},
-								FromClause: []*pg_query.Node{
-									pg_query.MakeSimpleRangeFunctionNode([]*pg_query.Node{
-										pg_query.MakeListNode([]*pg_query.Node{
-											pg_query.MakeFuncCallNode(
-												[]*pg_query.Node{pg_query.MakeStrNode("a")},
-												[]*pg_query.Node{pg_query.MakeAConstIntNode(1, 16)},
+								FromClause: []*pganalyze.Node{
+									pganalyze.MakeSimpleRangeFunctionNode([]*pganalyze.Node{
+										pganalyze.MakeListNode([]*pganalyze.Node{
+											pganalyze.MakeFuncCallNode(
+												[]*pganalyze.Node{pganalyze.MakeStrNode("a")},
+												[]*pganalyze.Node{pganalyze.MakeAConstIntNode(1, 16)},
 												14,
 											),
 											nil,
@@ -551,18 +552,18 @@ var parseTests = []struct {
 		// Test for null-byte related crashes
 		string([]byte{'S', 'E', 'L', 'E', 'C', 'T', ' ', '1', '\x00'}),
 		`{"version":150001,"stmts":[{"stmt":{"SelectStmt":{"targetList":[{"ResTarget":{"val":{"A_Const":{"ival":{"ival":1},"location":7}},"location":7}}],"limitOption":"LIMIT_OPTION_DEFAULT","op":"SETOP_NONE"}}}]}`,
-		&pg_query.ParseResult{
+		&pganalyze.ParseResult{
 			Version: int32(150001),
-			Stmts: []*pg_query.RawStmt{
+			Stmts: []*pganalyze.RawStmt{
 				{
-					Stmt: &pg_query.Node{
-						Node: &pg_query.Node_SelectStmt{
-							SelectStmt: &pg_query.SelectStmt{
-								LimitOption: pg_query.LimitOption_LIMIT_OPTION_DEFAULT,
-								Op:          pg_query.SetOperation_SETOP_NONE,
-								TargetList: []*pg_query.Node{
-									pg_query.MakeResTargetNodeWithVal(
-										pg_query.MakeAConstIntNode(1, 7),
+					Stmt: &pganalyze.Node{
+						Node: &pganalyze.Node_SelectStmt{
+							SelectStmt: &pganalyze.SelectStmt{
+								LimitOption: pganalyze.LimitOption_LIMIT_OPTION_DEFAULT,
+								Op:          pganalyze.SetOperation_SETOP_NONE,
+								TargetList: []*pganalyze.Node{
+									pganalyze.MakeResTargetNodeWithVal(
+										pganalyze.MakeAConstIntNode(1, 7),
 										7,
 									),
 								},

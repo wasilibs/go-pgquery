@@ -45,7 +45,7 @@ func GenerateProto() error {
 		_, _ = f.WriteString(s.Text() + "\n")
 	}
 
-	if err := sh.RunV("go", "run", "github.com/curioswitch/protog/cmd@v0.3.0", "-I", "build", "--go_out=.", "--go_opt=Mpg_query_wasilibs.proto=/pg_query", "--go_opt=paths=source_relative", "build/pg_query_wasilibs.proto"); err != nil {
+	if err := sh.RunV("go", "run", "github.com/curioswitch/protog/cmd@v0.3.0", "-I", "build", "--go_out=.", "--go_opt=Mpg_query_wasilibs.proto=/pg_query", "build/pg_query_wasilibs.proto"); err != nil {
 		return err
 	}
 
