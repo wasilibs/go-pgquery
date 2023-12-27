@@ -1,26 +1,26 @@
 diff --git a/internal/cparser/include/utils/elog.h b/internal/cparser/include/utils/elog.h
-index 9cfad3d..efc3057 100644
+index 6acc2c2..552752e 100644
 --- a/internal/cparser/include/utils/elog.h
 +++ b/internal/cparser/include/utils/elog.h
-@@ -312,13 +312,13 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+@@ -383,13 +383,13 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
   */
- #define PG_TRY()  \
+ #define PG_TRY(...)  \
  	do { \
--		sigjmp_buf *_save_exception_stack = PG_exception_stack; \
-+		jmp_buf *_save_exception_stack = PG_exception_stack; \
- 		ErrorContextCallback *_save_context_stack = error_context_stack; \
--		sigjmp_buf _local_sigjmp_buf; \
-+		jmp_buf _local_jmp_buf; \
- 		bool _do_rethrow = false; \
--		if (sigsetjmp(_local_sigjmp_buf, 0) == 0) \
-+		if (setjmp(_local_jmp_buf) == 0) \
+-		sigjmp_buf *_save_exception_stack##__VA_ARGS__ = PG_exception_stack; \
++		jmp_buf *_save_exception_stack##__VA_ARGS__ = PG_exception_stack; \
+ 		ErrorContextCallback *_save_context_stack##__VA_ARGS__ = error_context_stack; \
+-		sigjmp_buf _local_sigjmp_buf##__VA_ARGS__; \
++		jmp_buf _local_jmp_buf##__VA_ARGS__; \
+ 		bool _do_rethrow##__VA_ARGS__ = false; \
+-		if (sigsetjmp(_local_sigjmp_buf##__VA_ARGS__, 0) == 0) \
++		if (setjmp(_local_jmp_buf##__VA_ARGS__) == 0) \
  		{ \
--			PG_exception_stack = &_local_sigjmp_buf
-+			PG_exception_stack = &_local_jmp_buf
+-			PG_exception_stack = &_local_sigjmp_buf##__VA_ARGS__
++			PG_exception_stack = &_local_jmp_buf##__VA_ARGS__
  
- #define PG_CATCH()	\
+ #define PG_CATCH(...)	\
  		} \
-@@ -355,7 +355,7 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+@@ -426,7 +426,7 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
  	(pg_re_throw(), pg_unreachable())
  #endif
  
@@ -85,3 +85,46 @@ index 45686d3..171eea8 100644
  		case EHOSTUNREACH:
  			return "EHOSTUNREACH";
  		case EIDRM:
+diff --git a/internal/cparser/src_port_pg_bitutils.c b/internal/cparser/src_port_pg_bitutils.c
+index aa6514a..3539489 100644
+--- a/internal/cparser/src_port_pg_bitutils.c
++++ b/internal/cparser/src_port_pg_bitutils.c
+@@ -175,9 +175,23 @@ __asm__ __volatile__(" popcntq %1,%0\n":"=q"(res):"rm"(word):"cc");
+  * pg_popcount32_slow
+  *		Return the number of 1 bits set in word
+  */
++ static int
++pg_popcount32_slow(uint32 word)
++{
+ #ifdef HAVE__BUILTIN_POPCOUNT
+-#else							/* !HAVE__BUILTIN_POPCOUNT */
+-#endif							/* HAVE__BUILTIN_POPCOUNT */
++	return __builtin_popcount(word);
++#else                           /* !HAVE__BUILTIN_POPCOUNT */
++	int         result = 0;
++
++	while (word != 0)
++	{
++		result += pg_number_of_ones[word & 255];
++		word >>= 8;
++	}
++
++	return result;
++#endif                          /* HAVE__BUILTIN_POPCOUNT */
++}
+ 
+ /*
+  * pg_popcount64_slow
+@@ -216,7 +230,11 @@ pg_popcount64_slow(uint64 word)
+  * TRY_POPCNT_FAST is not defined.  The compiler should be able to inline
+  * the slow versions here.
+  */
+-
++int
++pg_popcount32(uint32 word)
++{
++	return pg_popcount32_slow(word);
++}
+ 
+ int
+ pg_popcount64(uint64 word)
