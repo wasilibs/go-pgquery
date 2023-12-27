@@ -100,3 +100,61 @@ index 45686d3..171eea8 100644
  		case EHOSTUNREACH:
  			return "EHOSTUNREACH";
  		case EIDRM:
+diff --git a/internal/cparser/include/pg_config.h b/internal/cparser/include/pg_config.h
+index 59a2288..d1d5cb0 100644
+--- a/internal/cparser/include/pg_config.h
++++ b/internal/cparser/include/pg_config.h
+@@ -1036,3 +1036,10 @@
+ #if defined(__FreeBSD__) || defined(__NetBSD__) || (defined(__GLIBC__) && ((__GLIBC__ == 2 && __GLIBC_MINOR__ >= 38) || __GLIBC__ > 2))
+ #define HAVE_STRCHRNUL
+ #endif
++
++#undef SIZEOF_OFF_T
++#define SIZEOF_OFF_T 4
++#undef SIZEOF_SIZE_T
++#define SIZEOF_SIZE_T 4
++#undef SIZEOF_VOID_P
++#define SIZEOF_VOID_P 4
+diff --git a/internal/cparser/src_port_pg_bitutils.c b/internal/cparser/src_port_pg_bitutils.c
+index 6889b8a..b7b4895 100644
+--- a/internal/cparser/src_port_pg_bitutils.c
++++ b/internal/cparser/src_port_pg_bitutils.c
+@@ -175,9 +175,23 @@ __asm__ __volatile__(" popcntq %1,%0\n":"=q"(res):"rm"(word):"cc");
+  * pg_popcount32_slow
+  *		Return the number of 1 bits set in word
+  */
++static int
++pg_popcount32_slow(uint32 word)
++{
+ #ifdef HAVE__BUILTIN_POPCOUNT
+-#else							/* !HAVE__BUILTIN_POPCOUNT */
+-#endif							/* HAVE__BUILTIN_POPCOUNT */
++	return __builtin_popcount(word);
++#else                           /* !HAVE__BUILTIN_POPCOUNT */
++	int         result = 0;
++
++	while (word != 0)
++	{
++		result += pg_number_of_ones[word & 255];
++		word >>= 8;
++	}
++
++	return result;
++#endif                          /* HAVE__BUILTIN_POPCOUNT */
++}
+ 
+ /*
+  * pg_popcount64_slow
+@@ -216,7 +230,11 @@ pg_popcount64_slow(uint64 word)
+  * TRY_POPCNT_FAST is not defined.  The compiler should be able to inline
+  * the slow versions here.
+  */
+-
++ int
++pg_popcount32(uint32 word)
++{
++	return pg_popcount32_slow(word);
++}
+ 
+ int
+ pg_popcount64(uint64 word)
