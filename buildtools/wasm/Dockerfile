@@ -2,7 +2,7 @@ FROM ghcr.io/wasilibs/wasix-sdk:sha-fc94d60
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
-ENV CFLAGS "${CFLAGS} -O3 -g -pthread -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN -DPLATFORM_DEFAULT_SYNC_METHOD=SYNC_METHOD_OPEN_DSYNC"
+ENV CFLAGS "${CFLAGS} -O3 -pthread -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN -DPLATFORM_DEFAULT_SYNC_METHOD=SYNC_METHOD_OPEN_DSYNC"
 ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman -Wl,--shared-memory -Wl,--max-memory=4294967296
 
 WORKDIR /workspace
@@ -36,7 +36,6 @@ RUN $CXX -o libpg_query-noopt.so -Wl,--global-base=1024 $LDFLAGS \
     -Wl,--export=__stack_pointer \
     -Wl,--export=__heap_base
 
-#RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop -O3 libpg_query-noopt.so
-RUN mv libpg_query-noopt.so libpg_query.so
+RUN wasm-opt -o libpg_query.so --low-memory-unused --flatten --rereloop -O3 libpg_query-noopt.so
 
 CMD ["bash", "-c", "cp libpg_query.so /out/"]
