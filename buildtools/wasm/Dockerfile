@@ -2,8 +2,8 @@ FROM ghcr.io/wasilibs/wasix-sdk:sha-fc94d60
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
-ENV CFLAGS "${CFLAGS} -O3 -msimd128 -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN"
-ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman
+ENV CFLAGS "${CFLAGS} -O3 -pthread -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN -DPLATFORM_DEFAULT_SYNC_METHOD=SYNC_METHOD_OPEN_DSYNC"
+ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman -Wl,--shared-memory -Wl,--max-memory=4294967296
 
 WORKDIR /workspace
 ADD internal/cparser .
@@ -11,11 +11,6 @@ ADD buildtools/wasm/patch.txt patch.txt
 ADD buildtools/wasm/patch-musl.txt patch-musl.txt
 ADD buildtools/wasm/patch-libpgquery.txt patch-libpgquery.txt
 RUN patch -p3 < patch.txt
-# Workaround bug in strtol in musl, used by wasi https://www.openwall.com/lists/musl/2023/12/01/1
-RUN patch -p3 < patch-musl.txt
-# Workaround obvious bug in libpgquery that seems to only cause problems with this toolchain
-# https://github.com/pganalyze/libpg_query/pull/223
-RUN patch -p3 < patch-libpgquery.txt
 
 RUN CMD="$CC -Iinclude -fstack-protector -fno-strict-aliasing -fwrapv -fPIC -std=gnu99 -Wno-deprecated-non-prototype -c $CFLAGS *.c" && echo $CMD && $CMD
 RUN $AR rs libpg_query.a *.o

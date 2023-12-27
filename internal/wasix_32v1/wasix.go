@@ -104,6 +104,10 @@ func exportFunctions(builder wazero.HostModuleBuilder) {
 		Export("proc_id")
 
 	builder.NewFunctionBuilder().
+		WithGoModuleFunction(threadExitFn, []api.ValueType{i32}, []api.ValueType{}).
+		Export("thread_exit")
+
+	builder.NewFunctionBuilder().
 		WithGoModuleFunction(threadSignalFn, []api.ValueType{i32, i32}, []api.ValueType{i32}).
 		Export("thread_signal")
 }
@@ -192,6 +196,10 @@ var stackRestoreFn = api.GoModuleFunc(func(ctx context.Context, mod api.Module, 
 	mod.Memory().WriteUint64Le(c.retValPtr, ret)
 	stack[0] = 0
 	c.snapshot.Restore(stack[:1])
+})
+
+var threadExitFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {
+	panic("thread_exit")
 })
 
 var threadSignalFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {

@@ -35,7 +35,7 @@ Because the library is a drop-in replacement for pg_query_go, it is sufficient t
 import statements.
 
 ```go
-import "github.com/pganalyze/pg_query_go/v4/parser"
+import "github.com/pganalyze/pg_query_go/v5/parser"
 ```
 
 can be changed to

@@ -1,41 +1,26 @@
-diff --git a/internal/cparser/include/access/xlogdefs.h b/internal/cparser/include/access/xlogdefs.h
-index a47e3ee..fc5925a 100644
---- a/internal/cparser/include/access/xlogdefs.h
-+++ b/internal/cparser/include/access/xlogdefs.h
-@@ -78,10 +78,7 @@ typedef uint16 RepOriginId;
- 
- #if defined(O_DSYNC)
- #if defined(OPEN_SYNC_FLAG)
--/* O_DSYNC is distinct? */
--#if O_DSYNC != OPEN_SYNC_FLAG
- #define OPEN_DATASYNC_FLAG		O_DSYNC
--#endif
- #else							/* !defined(OPEN_SYNC_FLAG) */
- /* Win32 only has O_DSYNC */
- #define OPEN_DATASYNC_FLAG		O_DSYNC
 diff --git a/internal/cparser/include/utils/elog.h b/internal/cparser/include/utils/elog.h
-index 9cfad3d..efc3057 100644
+index 6acc2c2..552752e 100644
 --- a/internal/cparser/include/utils/elog.h
 +++ b/internal/cparser/include/utils/elog.h
-@@ -312,13 +312,13 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+@@ -383,13 +383,13 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
   */
- #define PG_TRY()  \
+ #define PG_TRY(...)  \
  	do { \
--		sigjmp_buf *_save_exception_stack = PG_exception_stack; \
-+		jmp_buf *_save_exception_stack = PG_exception_stack; \
- 		ErrorContextCallback *_save_context_stack = error_context_stack; \
--		sigjmp_buf _local_sigjmp_buf; \
-+		jmp_buf _local_jmp_buf; \
- 		bool _do_rethrow = false; \
--		if (sigsetjmp(_local_sigjmp_buf, 0) == 0) \
-+		if (setjmp(_local_jmp_buf) == 0) \
+-		sigjmp_buf *_save_exception_stack##__VA_ARGS__ = PG_exception_stack; \
++		jmp_buf *_save_exception_stack##__VA_ARGS__ = PG_exception_stack; \
+ 		ErrorContextCallback *_save_context_stack##__VA_ARGS__ = error_context_stack; \
+-		sigjmp_buf _local_sigjmp_buf##__VA_ARGS__; \
++		jmp_buf _local_jmp_buf##__VA_ARGS__; \
+ 		bool _do_rethrow##__VA_ARGS__ = false; \
+-		if (sigsetjmp(_local_sigjmp_buf##__VA_ARGS__, 0) == 0) \
++		if (setjmp(_local_jmp_buf##__VA_ARGS__) == 0) \
  		{ \
--			PG_exception_stack = &_local_sigjmp_buf
-+			PG_exception_stack = &_local_jmp_buf
+-			PG_exception_stack = &_local_sigjmp_buf##__VA_ARGS__
++			PG_exception_stack = &_local_jmp_buf##__VA_ARGS__
  
- #define PG_CATCH()	\
+ #define PG_CATCH(...)	\
  		} \
-@@ -355,7 +355,7 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+@@ -426,7 +426,7 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
  	(pg_re_throw(), pg_unreachable())
  #endif
  
@@ -44,36 +29,6 @@ index 9cfad3d..efc3057 100644
  
  
  /* Stuff that error handlers might want to use */
-diff --git a/internal/cparser/pg_query.c b/internal/cparser/pg_query.c
-index e0069e8..8465a66 100644
---- a/internal/cparser/pg_query.c
-+++ b/internal/cparser/pg_query.c
-@@ -5,14 +5,10 @@
- #include <utils/memutils.h>
- #include <utils/memdebug.h>
- 
--#include <pthread.h>
--#include <signal.h>
--
- const char* progname = "pg_query";
- 
--__thread sig_atomic_t pg_query_initialized = 0;
-+__thread int pg_query_initialized = 0;
- 
--static pthread_key_t pg_query_thread_exit_key;
- static void pg_query_thread_exit(void *key);
- 
- void pg_query_init(void)
-@@ -22,9 +18,6 @@ void pg_query_init(void)
- 
- 	MemoryContextInit();
- 	SetDatabaseEncoding(PG_UTF8);
--
--	pthread_key_create(&pg_query_thread_exit_key, pg_query_thread_exit);
--	pthread_setspecific(pg_query_thread_exit_key, TopMemoryContext);
- }
- 
- void pg_query_free_top_memory_context(MemoryContext context)
 diff --git a/internal/cparser/src_backend_utils_error_elog.c b/internal/cparser/src_backend_utils_error_elog.c
 index 6dfd560..1330e5b 100644
 --- a/internal/cparser/src_backend_utils_error_elog.c
@@ -101,29 +56,34 @@ index 45686d3..171eea8 100644
  			return "EHOSTUNREACH";
  		case EIDRM:
 diff --git a/internal/cparser/include/pg_config.h b/internal/cparser/include/pg_config.h
-index 59a2288..d1d5cb0 100644
+index d1dd7b7..11c49a7 100644
 --- a/internal/cparser/include/pg_config.h
 +++ b/internal/cparser/include/pg_config.h
-@@ -1036,3 +1036,10 @@
+@@ -841,3 +841,15 @@
  #if defined(__FreeBSD__) || defined(__NetBSD__) || (defined(__GLIBC__) && ((__GLIBC__ == 2 && __GLIBC_MINOR__ >= 38) || __GLIBC__ > 2))
  #define HAVE_STRCHRNUL
  #endif
 +
-+#undef SIZEOF_OFF_T
-+#define SIZEOF_OFF_T 4
++#undef ALIGNOF_LONG
++#define ALIGNOF_LONG __SIZEOF_LONG__
++#define ALIGNOF_LONG_LONG_INT __SIZEOF_LONG_LONG__
++#undef HAVE_LONG_INT_64
++#define HAVE_LONG_LONG_INT_64 1
++#undef SIZEOF_LONG
++#define SIZEOF_LONG __SIZEOF_LONG__
 +#undef SIZEOF_SIZE_T
-+#define SIZEOF_SIZE_T 4
++#define SIZEOF_SIZE_T __SIZEOF_SIZE_T__
 +#undef SIZEOF_VOID_P
-+#define SIZEOF_VOID_P 4
++#define SIZEOF_VOID_P __SIZEOF_POINTER__
 diff --git a/internal/cparser/src_port_pg_bitutils.c b/internal/cparser/src_port_pg_bitutils.c
-index 6889b8a..b7b4895 100644
+index aa6514a..3539489 100644
 --- a/internal/cparser/src_port_pg_bitutils.c
 +++ b/internal/cparser/src_port_pg_bitutils.c
 @@ -175,9 +175,23 @@ __asm__ __volatile__(" popcntq %1,%0\n":"=q"(res):"rm"(word):"cc");
   * pg_popcount32_slow
   *		Return the number of 1 bits set in word
   */
-+static int
++ static int
 +pg_popcount32_slow(uint32 word)
 +{
  #ifdef HAVE__BUILTIN_POPCOUNT
@@ -150,7 +110,7 @@ index 6889b8a..b7b4895 100644
   * the slow versions here.
   */
 -
-+ int
++int
 +pg_popcount32(uint32 word)
 +{
 +	return pg_popcount32_slow(word);

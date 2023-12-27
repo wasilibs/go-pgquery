@@ -1,8 +1,8 @@
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/pganalyze/pg_query_go/v4 v4.2.4-0.20231205012101-7463430c7b73 h1:vZEujakYrBzd7CWMwqTsDRU7bdRm4Aiu76X9K3P+qtI=
-github.com/pganalyze/pg_query_go/v4 v4.2.4-0.20231205012101-7463430c7b73/go.mod h1:pRJ9rCcWIhDLAzymhH2iY5kEVEfU6UGrL1wBWuO7gmM=
+github.com/pganalyze/pg_query_go/v5 v5.0.0-20231223014406-1896d12cec29 h1:uaA1/05AXsXPV3QAmZ289cGPCPmaoVUimSgi+DmBsyc=
+github.com/pganalyze/pg_query_go/v5 v5.0.0-20231223014406-1896d12cec29/go.mod h1:FsglvxidZsVN+Ltw3Ai6nTgPVcK2BPukH3jCDEqc1Ug=
 github.com/wasilibs/wazerox v0.0.0-20231208014050-e6b725634531 h1:zVJ4SZgaEE9sEH2L9k1+eAvCNa/WAAnT9UiMa3/tQrI=
 github.com/wasilibs/wazerox v0.0.0-20231208014050-e6b725634531/go.mod h1:IQNVyA4d1hWIe23mlMMuqXjyWMdndgSlNx6FqBkwPsM=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
