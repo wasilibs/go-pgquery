@@ -1,18 +1,3 @@
-diff --git a/internal/cparser/include/access/xlogdefs.h b/internal/cparser/include/access/xlogdefs.h
-index a47e3ee..fc5925a 100644
---- a/internal/cparser/include/access/xlogdefs.h
-+++ b/internal/cparser/include/access/xlogdefs.h
-@@ -78,10 +78,7 @@ typedef uint16 RepOriginId;
- 
- #if defined(O_DSYNC)
- #if defined(OPEN_SYNC_FLAG)
--/* O_DSYNC is distinct? */
--#if O_DSYNC != OPEN_SYNC_FLAG
- #define OPEN_DATASYNC_FLAG		O_DSYNC
--#endif
- #else							/* !defined(OPEN_SYNC_FLAG) */
- /* Win32 only has O_DSYNC */
- #define OPEN_DATASYNC_FLAG		O_DSYNC
 diff --git a/internal/cparser/include/utils/elog.h b/internal/cparser/include/utils/elog.h
 index 9cfad3d..efc3057 100644
 --- a/internal/cparser/include/utils/elog.h

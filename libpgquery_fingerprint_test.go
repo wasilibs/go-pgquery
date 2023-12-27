@@ -7,7 +7,7 @@ import (
 	pg_query "github.com/wasilibs/go-pgquery"
 )
 
-// https://github.com/pganalyze/libpg_query/blob/15-latest/test/fingerprint_tests.c
+// https://github.com/pganalyze/libpg_query/blob/16-latest/test/fingerprint_tests.c
 var libpgqueryFingerprintTests = []string{
 	"SELECT 1",
 	"50fde20626009aba",

@@ -3,7 +3,7 @@ package pg_query_test
 import (
 	"testing"
 
-	pganalyze "github.com/pganalyze/pg_query_go/v4"
+	pganalyze "github.com/pganalyze/pg_query_go/v5"
 
 	pg_query "github.com/wasilibs/go-pgquery"
 	"github.com/wasilibs/go-pgquery/parser"

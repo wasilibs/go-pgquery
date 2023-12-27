@@ -99,6 +99,10 @@ var libpgqueryScanTests = []string{
 		"SELECT = SELECT, RESERVED_KEYWORD\n" +
 		"2 = ICONST, NO_KEYWORD\n" +
 		") = ASCII_41, NO_KEYWORD\n",
+	"SELECT $identifier",
+	"SELECT = SELECT, RESERVED_KEYWORD\n" +
+		"$ = ASCII_36, NO_KEYWORD\n" +
+		"identifier = IDENT, NO_KEYWORD\n",
 }
 
 // https://github.com/pganalyze/libpg_query/blob/15-4.2.3/test/scan.c

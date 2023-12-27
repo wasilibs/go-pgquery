@@ -6,7 +6,7 @@ import (
 	pg_query "github.com/wasilibs/go-pgquery"
 )
 
-// https://github.com/pganalyze/libpg_query/blob/15-4.2.3/test/normalize_tests.c
+// https://github.com/pganalyze/libpg_query/blob/16-latest/test/normalize_tests.c
 var libpgqueryNormalizeTests = []string{
 	"SELECT 1",
 	"SELECT $1",
