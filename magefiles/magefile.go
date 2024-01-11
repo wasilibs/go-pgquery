@@ -58,7 +58,7 @@ func GenerateProto() error {
 }
 
 func UpdateCParser() error {
-	ref := "1896d12cec29a61bf64d71236619ad8ff49f3d4b"
+	ref := "2c36edb70a84d3fa060f41080f599696ecebd8fd"
 	uri := fmt.Sprintf("https://github.com/pganalyze/pg_query_go/archive/%s.zip", ref)
 	res, err := http.Get(uri)
 	if err != nil {
