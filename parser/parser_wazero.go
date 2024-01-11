@@ -67,6 +67,17 @@ func ParseToProtobuf(input string) (result []byte, err error) {
 	return abi.pgQueryParseProtobuf(inputC)
 }
 
+// DeparseFromProtobuf - Deparses the given Protobuf format parse tree into a SQL statement
+func DeparseFromProtobuf(input []byte) (result string, err error) {
+	abi := newABI()
+	defer abi.Close()
+
+	inputC := abi.newCStringFromBytes(input)
+	defer inputC.Close()
+
+	return abi.pgQueryDeParseFromProtobuf(inputC)
+}
+
 // Scans the given SQL statement into a protobuf ScanResult
 func ScanToProtobuf(input string) (result []byte, err error) {
 	abi := newABI()
@@ -154,6 +165,8 @@ var abiPool = sync.Pool{
 			fPgQueryFreeNormalizeResult:     newLazyFunction(wasmRT, mod, "pg_query_free_normalize_result"),
 			fPgQueryFingerprint:             newLazyFunction(wasmRT, mod, "pg_query_fingerprint"),
 			fPgQueryFreeFingerprintResult:   newLazyFunction(wasmRT, mod, "pg_query_free_fingerprint_result"),
+			fPgQueryDeparseProtobuf:         newLazyFunction(wasmRT, mod, "pg_query_deparse_protobuf"),
+			fPgQueryFreeDeparseResult:       newLazyFunction(wasmRT, mod, "pg_query_free_deparse_result"),
 			hashXXH364:                      newLazyFunction(wasmRT, mod, "XXH3_64bits_withSeed"),
 
 			malloc: newLazyFunction(wasmRT, mod, "malloc"),
@@ -190,6 +203,8 @@ type abi struct {
 	fPgQueryFreeNormalizeResult     lazyFunction
 	fPgQueryFingerprint             lazyFunction
 	fPgQueryFreeFingerprintResult   lazyFunction
+	fPgQueryDeparseProtobuf         lazyFunction
+	fPgQueryFreeDeparseResult       lazyFunction
 	hashXXH364                      lazyFunction
 
 	malloc lazyFunction
@@ -261,6 +276,36 @@ func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
 	}
 
 	result = bytes.Clone(buf)
+
+	return
+}
+
+func (abi *abi) pgQueryDeParseFromProtobuf(input cString) (result string, err error) {
+	ctx := wasix_32v1.BackgroundContext()
+
+	resPtr := abi.malloc.Call1(ctx, 8)
+	defer abi.free.Call1(ctx, resPtr)
+
+	paramPtr := abi.malloc.Call1(ctx, 8)
+	defer abi.free.Call1(ctx, paramPtr)
+
+	abi.wasmMemory.WriteUint32Le(uint32(paramPtr), uint32(input.length))
+	abi.wasmMemory.WriteUint32Le(uint32(paramPtr+4), uint32(input.ptr))
+
+	abi.fPgQueryDeparseProtobuf.Call2(ctx, resPtr, paramPtr)
+	defer abi.fPgQueryFreeDeparseResult.Call1(ctx, resPtr)
+
+	resBuf, ok := abi.wasmMemory.Read(uint32(resPtr), 8)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	errPtr := binary.LittleEndian.Uint32(resBuf[4:])
+	if errPtr != 0 {
+		return "", newPgQueryError(abi.mod, errPtr)
+	}
+
+	result = readCStringPtr(abi.wasmMemory, uint32(resPtr))
 
 	return
 }
