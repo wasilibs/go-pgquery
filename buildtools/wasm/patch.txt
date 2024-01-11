@@ -1,8 +1,8 @@
-diff --git a/internal/cparser/include/utils/elog.h b/internal/cparser/include/utils/elog.h
-index 6acc2c2..552752e 100644
---- a/internal/cparser/include/utils/elog.h
-+++ b/internal/cparser/include/utils/elog.h
-@@ -383,13 +383,13 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+diff --git a/internal/cparser/include/postgres/utils/elog.h b/internal/cparser/include/postgres/utils/elog.h
+index 7655196..75141a4 100644
+--- a/internal/cparser/include/postgres/utils/elog.h
++++ b/internal/cparser/include/postgres/utils/elog.h
+@@ -383,13 +383,13 @@ extern PGDLLIMPORT __thread ErrorContextCallback *error_context_stack;
   */
  #define PG_TRY(...)  \
  	do { \
@@ -20,20 +20,20 @@ index 6acc2c2..552752e 100644
  
  #define PG_CATCH(...)	\
  		} \
-@@ -426,7 +426,7 @@ extern PGDLLIMPORT __thread  ErrorContextCallback *error_context_stack;
+@@ -426,7 +426,7 @@ extern PGDLLIMPORT __thread ErrorContextCallback *error_context_stack;
  	(pg_re_throw(), pg_unreachable())
  #endif
  
--extern PGDLLIMPORT __thread  sigjmp_buf *PG_exception_stack;
-+extern PGDLLIMPORT __thread  jmp_buf *PG_exception_stack;
+-extern PGDLLIMPORT __thread sigjmp_buf *PG_exception_stack;
++extern PGDLLIMPORT __thread jmp_buf *PG_exception_stack;
  
  
  /* Stuff that error handlers might want to use */
 diff --git a/internal/cparser/src_backend_utils_error_elog.c b/internal/cparser/src_backend_utils_error_elog.c
-index 6dfd560..1330e5b 100644
+index 872d2fd..0b66252 100644
 --- a/internal/cparser/src_backend_utils_error_elog.c
 +++ b/internal/cparser/src_backend_utils_error_elog.c
-@@ -1444,7 +1444,7 @@ pg_re_throw(void)
+@@ -1629,7 +1629,7 @@ pg_re_throw(void)
  {
  	/* If possible, throw the error to the next outer setjmp handler */
  	if (PG_exception_stack != NULL)
@@ -43,7 +43,7 @@ index 6dfd560..1330e5b 100644
  	{
  		/*
 diff --git a/internal/cparser/src_port_strerror.c b/internal/cparser/src_port_strerror.c
-index 45686d3..171eea8 100644
+index 5ce298f..23af0fe 100644
 --- a/internal/cparser/src_port_strerror.c
 +++ b/internal/cparser/src_port_strerror.c
 @@ -160,8 +160,6 @@ get_errno_symbol(int errnum)
@@ -55,66 +55,3 @@ index 45686d3..171eea8 100644
  		case EHOSTUNREACH:
  			return "EHOSTUNREACH";
  		case EIDRM:
-diff --git a/internal/cparser/include/pg_config.h b/internal/cparser/include/pg_config.h
-index d1dd7b7..11c49a7 100644
---- a/internal/cparser/include/pg_config.h
-+++ b/internal/cparser/include/pg_config.h
-@@ -841,3 +841,15 @@
- #if defined(__FreeBSD__) || defined(__NetBSD__) || (defined(__GLIBC__) && ((__GLIBC__ == 2 && __GLIBC_MINOR__ >= 38) || __GLIBC__ > 2))
- #define HAVE_STRCHRNUL
- #endif
-+
-+#undef ALIGNOF_LONG
-+#define ALIGNOF_LONG __SIZEOF_LONG__
-+#define ALIGNOF_LONG_LONG_INT __SIZEOF_LONG_LONG__
-+#undef HAVE_LONG_INT_64
-+#define HAVE_LONG_LONG_INT_64 1
-+#undef SIZEOF_LONG
-+#define SIZEOF_LONG __SIZEOF_LONG__
-+#undef SIZEOF_SIZE_T
-+#define SIZEOF_SIZE_T __SIZEOF_SIZE_T__
-+#undef SIZEOF_VOID_P
-+#define SIZEOF_VOID_P __SIZEOF_POINTER__
-diff --git a/internal/cparser/src_port_pg_bitutils.c b/internal/cparser/src_port_pg_bitutils.c
-index aa6514a..3539489 100644
---- a/internal/cparser/src_port_pg_bitutils.c
-+++ b/internal/cparser/src_port_pg_bitutils.c
-@@ -175,9 +175,23 @@ __asm__ __volatile__(" popcntq %1,%0\n":"=q"(res):"rm"(word):"cc");
-  * pg_popcount32_slow
-  *		Return the number of 1 bits set in word
-  */
-+ static int
-+pg_popcount32_slow(uint32 word)
-+{
- #ifdef HAVE__BUILTIN_POPCOUNT
--#else							/* !HAVE__BUILTIN_POPCOUNT */
--#endif							/* HAVE__BUILTIN_POPCOUNT */
-+	return __builtin_popcount(word);
-+#else                           /* !HAVE__BUILTIN_POPCOUNT */
-+	int         result = 0;
-+
-+	while (word != 0)
-+	{
-+		result += pg_number_of_ones[word & 255];
-+		word >>= 8;
-+	}
-+
-+	return result;
-+#endif                          /* HAVE__BUILTIN_POPCOUNT */
-+}
- 
- /*
-  * pg_popcount64_slow
-@@ -216,7 +230,11 @@ pg_popcount64_slow(uint64 word)
-  * TRY_POPCNT_FAST is not defined.  The compiler should be able to inline
-  * the slow versions here.
-  */
--
-+int
-+pg_popcount32(uint32 word)
-+{
-+	return pg_popcount32_slow(word);
-+}
- 
- int
- pg_popcount64(uint64 word)

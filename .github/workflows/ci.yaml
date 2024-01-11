@@ -21,9 +21,6 @@ jobs:
           - macos-12
           - ubuntu-22.04
           - windows-2022
-        exclude:
-          - os: windows-2022
-            mode: cgo
     steps:
       - uses: actions/checkout@v4
         with:
