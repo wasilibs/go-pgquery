@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/google/go-cmp v0.5.5
 	github.com/pganalyze/pg_query_go/v5 v5.1.0
-	github.com/wasilibs/wazerox v0.0.0-20231208014050-e6b725634531
+	github.com/tetratelabs/wazero v1.6.1-0.20240124004658-4185e533bb18
 	google.golang.org/protobuf v1.31.0
 )
 
