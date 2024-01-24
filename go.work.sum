@@ -1,7 +1,0 @@
-github.com/anuraaga/wazero v0.0.0-20240122031138-04cf900f1edc h1:ZSO34BEg3CfBfIVY1qPaXaYpzbo6e7pmO/AfrdZ6Moc=
-github.com/anuraaga/wazero v0.0.0-20240122031138-04cf900f1edc/go.mod h1:0U0G41+ochRKoPKCJlh0jMg1CHkyfK8kDqiirMmKY8A=
-github.com/golang/protobuf v1.5.0 h1:LUVKkCeviFUMKqHa4tXIIij/lbhnMbP7Fn5wKdKkRh4=
-github.com/tetratelabs/wazero v1.6.1-0.20240124004658-4185e533bb18 h1:Gi/arySP4fsMGdfv1uLMBZ59P4trxQVybzo/jEmqSOE=
-github.com/tetratelabs/wazero v1.6.1-0.20240124004658-4185e533bb18/go.mod h1:0U0G41+ochRKoPKCJlh0jMg1CHkyfK8kDqiirMmKY8A=
-github.com/wasilibs/wazero v0.0.0-20230919004538-c2dc83e52482 h1:1AOqPk2JckbVUCD/Kil156mGqkUVp2V14cs/A2b5CgM=
-github.com/wasilibs/wazero v0.0.0-20230919004538-c2dc83e52482/go.mod h1:0U0G41+ochRKoPKCJlh0jMg1CHkyfK8kDqiirMmKY8A=
