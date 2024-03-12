@@ -25,14 +25,12 @@ var (
 	errFailedRead  = errors.New("failed to read from wasm memory")
 )
 
-var (
-	wasmRT       wazero.Runtime
-	wasmCompiled wazero.CompiledModule
-)
-
-func init() {
+// TODO(anuraaga): Use shared memory with child modules instead of fresh runtimes per call.
+func newRT() (wazero.Runtime, wazero.CompiledModule) {
 	ctx := context.Background()
-	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads))
+	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
+		WithCompilationCache(wazero.NewCompilationCache()).
+		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads))
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 	wasix_32v1.MustInstantiate(ctx, rt)
@@ -42,8 +40,7 @@ func init() {
 		panic(err)
 	}
 
-	wasmCompiled = code
-	wasmRT = rt
+	return rt, code
 }
 
 // ParseToJSON - Parses the given SQL statement into a parse tree (JSON format)
@@ -147,39 +144,41 @@ func HashXXH3_64(input []byte, seed uint64) (result uint64) {
 
 var abiPool = sync.Pool{
 	New: func() interface{} {
+		rt, code := newRT()
 		cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
-		mod, err := wasmRT.InstantiateModule(context.Background(), wasmCompiled, cfg)
+		mod, err := rt.InstantiateModule(context.Background(), code, cfg)
 		if err != nil {
 			panic(err)
 		}
 		res := &abi{
-			fPgQueryInit:                    newLazyFunction(wasmRT, mod, "pg_query_init"),
-			fPgQueryParse:                   newLazyFunction(wasmRT, mod, "pg_query_parse"),
-			fPgQueryFreeParseResult:         newLazyFunction(wasmRT, mod, "pg_query_free_parse_result"),
-			fPgQueryParseProtobuf:           newLazyFunction(wasmRT, mod, "pg_query_parse_protobuf"),
-			fPgQueryFreeProtobufParseResult: newLazyFunction(wasmRT, mod, "pg_query_free_protobuf_parse_result"),
-			fPgQueryParsePlpgsql:            newLazyFunction(wasmRT, mod, "pg_query_parse_plpgsql"),
-			fPgQueryFreePlpgsqlParseResult:  newLazyFunction(wasmRT, mod, "pg_query_free_plpgsql_parse_result"),
-			fPgQueryScan:                    newLazyFunction(wasmRT, mod, "pg_query_scan"),
-			fPgQueryFreeScanResult:          newLazyFunction(wasmRT, mod, "pg_query_free_scan_result"),
-			fPgQueryNormalize:               newLazyFunction(wasmRT, mod, "pg_query_normalize"),
-			fPgQueryFreeNormalizeResult:     newLazyFunction(wasmRT, mod, "pg_query_free_normalize_result"),
-			fPgQueryFingerprint:             newLazyFunction(wasmRT, mod, "pg_query_fingerprint"),
-			fPgQueryFreeFingerprintResult:   newLazyFunction(wasmRT, mod, "pg_query_free_fingerprint_result"),
-			fPgQueryDeparseProtobuf:         newLazyFunction(wasmRT, mod, "pg_query_deparse_protobuf"),
-			fPgQueryFreeDeparseResult:       newLazyFunction(wasmRT, mod, "pg_query_free_deparse_result"),
-			hashXXH364:                      newLazyFunction(wasmRT, mod, "XXH3_64bits_withSeed"),
+			fPgQueryInit:                    newLazyFunction(rt, mod, "pg_query_init"),
+			fPgQueryParse:                   newLazyFunction(rt, mod, "pg_query_parse"),
+			fPgQueryFreeParseResult:         newLazyFunction(rt, mod, "pg_query_free_parse_result"),
+			fPgQueryParseProtobuf:           newLazyFunction(rt, mod, "pg_query_parse_protobuf"),
+			fPgQueryFreeProtobufParseResult: newLazyFunction(rt, mod, "pg_query_free_protobuf_parse_result"),
+			fPgQueryParsePlpgsql:            newLazyFunction(rt, mod, "pg_query_parse_plpgsql"),
+			fPgQueryFreePlpgsqlParseResult:  newLazyFunction(rt, mod, "pg_query_free_plpgsql_parse_result"),
+			fPgQueryScan:                    newLazyFunction(rt, mod, "pg_query_scan"),
+			fPgQueryFreeScanResult:          newLazyFunction(rt, mod, "pg_query_free_scan_result"),
+			fPgQueryNormalize:               newLazyFunction(rt, mod, "pg_query_normalize"),
+			fPgQueryFreeNormalizeResult:     newLazyFunction(rt, mod, "pg_query_free_normalize_result"),
+			fPgQueryFingerprint:             newLazyFunction(rt, mod, "pg_query_fingerprint"),
+			fPgQueryFreeFingerprintResult:   newLazyFunction(rt, mod, "pg_query_free_fingerprint_result"),
+			fPgQueryDeparseProtobuf:         newLazyFunction(rt, mod, "pg_query_deparse_protobuf"),
+			fPgQueryFreeDeparseResult:       newLazyFunction(rt, mod, "pg_query_free_deparse_result"),
+			hashXXH364:                      newLazyFunction(rt, mod, "XXH3_64bits_withSeed"),
 
-			malloc: newLazyFunction(wasmRT, mod, "malloc"),
-			free:   newLazyFunction(wasmRT, mod, "free"),
+			malloc: newLazyFunction(rt, mod, "malloc"),
+			free:   newLazyFunction(rt, mod, "free"),
 
 			mod:        mod,
 			wasmMemory: mod.Memory(),
+			rt:         rt,
 		}
 
 		res.pgQueryInit()
 		runtime.SetFinalizer(res, func(r *abi) {
-			r.mod.Close(context.Background())
+			r.rt.Close(context.Background())
 		})
 
 		return res
@@ -214,6 +213,7 @@ type abi struct {
 	wasmMemory api.Memory
 
 	mod api.Module
+	rt  wazero.Runtime
 }
 
 func (abi *abi) Close() error {
