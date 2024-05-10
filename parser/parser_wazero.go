@@ -16,6 +16,7 @@ import (
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 
+	"github.com/wasilibs/go-pgquery/internal/alloc"
 	"github.com/wasilibs/go-pgquery/internal/wasix_32v1"
 	"github.com/wasilibs/go-pgquery/internal/wasm"
 )
@@ -28,6 +29,10 @@ var (
 // TODO(anuraaga): Use shared memory with child modules instead of fresh runtimes per call.
 func newRT() (wazero.Runtime, wazero.CompiledModule) {
 	ctx := context.Background()
+	if a := alloc.Allocator(); a != nil {
+		ctx = experimental.WithMemoryAllocator(ctx, a)
+	}
+
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
 		WithCompilationCache(wazero.NewCompilationCache()).
 		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads))
