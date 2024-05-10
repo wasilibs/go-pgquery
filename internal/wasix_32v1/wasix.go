@@ -153,7 +153,7 @@ var stackCheckpointFn = api.GoModuleFunc(func(ctx context.Context, mod api.Modul
 	cstack := make([]byte, len(cstackView))
 	copy(cstack, cstackView)
 
-	sc := ctx.Value(experimental.SnapshotterKey{}).(experimental.Snapshotter)
+	sc := experimental.GetSnapshotter(ctx)
 	s := sc.Snapshot()
 
 	idx := len(d.checkpoints)
@@ -221,7 +221,7 @@ type wasixDataKey struct{}
 
 func BackgroundContext() context.Context {
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, experimental.EnableSnapshotterKey{}, true)
+	ctx = experimental.WithSnapshotter(ctx)
 	ctx = context.WithValue(ctx, wasixDataKey{}, &wasixData{})
 	return ctx
 }
