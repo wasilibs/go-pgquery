@@ -4,6 +4,7 @@ package parser
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -48,7 +49,7 @@ func newRT() (wazero.Runtime, wazero.CompiledModule) {
 
 // ParseToJSON - Parses the given SQL statement into a parse tree (JSON format)
 func ParseToJSON(input string) (result string, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCString(input)
@@ -59,7 +60,7 @@ func ParseToJSON(input string) (result string, err error) {
 
 // ParseToProtobuf - Parses the given SQL statement into a parse tree (Protobuf format)
 func ParseToProtobuf(input string) (result []byte, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCString(input)
@@ -70,7 +71,7 @@ func ParseToProtobuf(input string) (result []byte, err error) {
 
 // DeparseFromProtobuf - Deparses the given Protobuf format parse tree into a SQL statement
 func DeparseFromProtobuf(input []byte) (result string, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCStringFromBytes(input)
@@ -81,7 +82,7 @@ func DeparseFromProtobuf(input []byte) (result string, err error) {
 
 // Scans the given SQL statement into a protobuf ScanResult
 func ScanToProtobuf(input string) (result []byte, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCString(input)
@@ -92,7 +93,7 @@ func ScanToProtobuf(input string) (result []byte, err error) {
 
 // ParsePlPgSqlToJSON - Parses the given PL/pgSQL function statement into a parse tree (JSON format)
 func ParsePlPgSqlToJSON(input string) (result string, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCString(input)
@@ -103,7 +104,7 @@ func ParsePlPgSqlToJSON(input string) (result string, err error) {
 
 // Normalize the passed SQL statement to replace constant values with ? characters
 func Normalize(input string) (result string, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCString(input)
@@ -114,7 +115,7 @@ func Normalize(input string) (result string, err error) {
 
 // FingerprintToUInt64 - Fingerprint the passed SQL statement using the C extension and returns result as uint64
 func FingerprintToUInt64(input string) (result uint64, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCString(input)
@@ -125,7 +126,7 @@ func FingerprintToUInt64(input string) (result uint64, err error) {
 
 // FingerprintToHexStr - Fingerprint the passed SQL statement using the C extension and returns result as hex string
 func FingerprintToHexStr(input string) (result string, err error) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCString(input)
@@ -136,7 +137,7 @@ func FingerprintToHexStr(input string) (result string, err error) {
 
 // HashXXH3_64 - Helper method to run XXH3 hash function (64-bit variant) on the given bytes, with the specified seed
 func HashXXH3_64(input []byte, seed uint64) (result uint64) {
-	abi := newABI()
+	abi := getABI()
 	defer abi.Close()
 
 	inputC := abi.newCStringFromBytes(input)
@@ -145,51 +146,64 @@ func HashXXH3_64(input []byte, seed uint64) (result uint64) {
 	return uint64(abi.pgQueryHashXXH364(inputC, seed))
 }
 
-var abiPool = sync.Pool{
-	New: func() interface{} {
-		rt, code := newRT()
-		cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
-		mod, err := rt.InstantiateModule(context.Background(), code, cfg)
-		if err != nil {
-			panic(err)
-		}
-		res := &abi{
-			fPgQueryInit:                    newLazyFunction(rt, mod, "pg_query_init"),
-			fPgQueryParse:                   newLazyFunction(rt, mod, "pg_query_parse"),
-			fPgQueryFreeParseResult:         newLazyFunction(rt, mod, "pg_query_free_parse_result"),
-			fPgQueryParseProtobuf:           newLazyFunction(rt, mod, "pg_query_parse_protobuf"),
-			fPgQueryFreeProtobufParseResult: newLazyFunction(rt, mod, "pg_query_free_protobuf_parse_result"),
-			fPgQueryParsePlpgsql:            newLazyFunction(rt, mod, "pg_query_parse_plpgsql"),
-			fPgQueryFreePlpgsqlParseResult:  newLazyFunction(rt, mod, "pg_query_free_plpgsql_parse_result"),
-			fPgQueryScan:                    newLazyFunction(rt, mod, "pg_query_scan"),
-			fPgQueryFreeScanResult:          newLazyFunction(rt, mod, "pg_query_free_scan_result"),
-			fPgQueryNormalize:               newLazyFunction(rt, mod, "pg_query_normalize"),
-			fPgQueryFreeNormalizeResult:     newLazyFunction(rt, mod, "pg_query_free_normalize_result"),
-			fPgQueryFingerprint:             newLazyFunction(rt, mod, "pg_query_fingerprint"),
-			fPgQueryFreeFingerprintResult:   newLazyFunction(rt, mod, "pg_query_free_fingerprint_result"),
-			fPgQueryDeparseProtobuf:         newLazyFunction(rt, mod, "pg_query_deparse_protobuf"),
-			fPgQueryFreeDeparseResult:       newLazyFunction(rt, mod, "pg_query_free_deparse_result"),
-			hashXXH364:                      newLazyFunction(rt, mod, "XXH3_64bits_withSeed"),
-
-			malloc: newLazyFunction(rt, mod, "malloc"),
-			free:   newLazyFunction(rt, mod, "free"),
-
-			mod:        mod,
-			wasmMemory: mod.Memory(),
-			rt:         rt,
-		}
-
-		res.pgQueryInit()
-		runtime.SetFinalizer(res, func(r *abi) {
-			r.rt.Close(context.Background())
-		})
-
-		return res
-	},
-}
+var (
+	abiPool   = list.New()
+	abiPoolMu sync.Mutex
+)
 
 func newABI() *abi {
-	return abiPool.Get().(*abi)
+	rt, code := newRT()
+	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
+	mod, err := rt.InstantiateModule(context.Background(), code, cfg)
+	if err != nil {
+		panic(err)
+	}
+	res := &abi{
+		fPgQueryInit:                    newLazyFunction(rt, mod, "pg_query_init"),
+		fPgQueryParse:                   newLazyFunction(rt, mod, "pg_query_parse"),
+		fPgQueryFreeParseResult:         newLazyFunction(rt, mod, "pg_query_free_parse_result"),
+		fPgQueryParseProtobuf:           newLazyFunction(rt, mod, "pg_query_parse_protobuf"),
+		fPgQueryFreeProtobufParseResult: newLazyFunction(rt, mod, "pg_query_free_protobuf_parse_result"),
+		fPgQueryParsePlpgsql:            newLazyFunction(rt, mod, "pg_query_parse_plpgsql"),
+		fPgQueryFreePlpgsqlParseResult:  newLazyFunction(rt, mod, "pg_query_free_plpgsql_parse_result"),
+		fPgQueryScan:                    newLazyFunction(rt, mod, "pg_query_scan"),
+		fPgQueryFreeScanResult:          newLazyFunction(rt, mod, "pg_query_free_scan_result"),
+		fPgQueryNormalize:               newLazyFunction(rt, mod, "pg_query_normalize"),
+		fPgQueryFreeNormalizeResult:     newLazyFunction(rt, mod, "pg_query_free_normalize_result"),
+		fPgQueryFingerprint:             newLazyFunction(rt, mod, "pg_query_fingerprint"),
+		fPgQueryFreeFingerprintResult:   newLazyFunction(rt, mod, "pg_query_free_fingerprint_result"),
+		fPgQueryDeparseProtobuf:         newLazyFunction(rt, mod, "pg_query_deparse_protobuf"),
+		fPgQueryFreeDeparseResult:       newLazyFunction(rt, mod, "pg_query_free_deparse_result"),
+		hashXXH364:                      newLazyFunction(rt, mod, "XXH3_64bits_withSeed"),
+
+		malloc: newLazyFunction(rt, mod, "malloc"),
+		free:   newLazyFunction(rt, mod, "free"),
+
+		mod:        mod,
+		wasmMemory: mod.Memory(),
+		rt:         rt,
+	}
+
+	res.pgQueryInit()
+	runtime.SetFinalizer(res, func(r *abi) {
+		r.rt.Close(context.Background())
+	})
+
+	return res
+}
+
+func getABI() *abi {
+	abiPoolMu.Lock()
+
+	e := abiPool.Front()
+	if e == nil {
+		abiPoolMu.Unlock()
+		return newABI()
+	}
+
+	abiPool.Remove(e)
+	abiPoolMu.Unlock()
+	return e.Value.(*abi)
 }
 
 type abi struct {
@@ -220,7 +234,9 @@ type abi struct {
 }
 
 func (abi *abi) Close() error {
-	abiPool.Put(abi)
+	abiPoolMu.Lock()
+	abiPool.PushBack(abi)
+	abiPoolMu.Unlock()
 	return nil
 }
 
