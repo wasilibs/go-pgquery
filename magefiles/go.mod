@@ -2,8 +2,6 @@ module magefiles
 
 go 1.21
 
-toolchain go1.23.2
-
 require (
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/cli/go-gh/v2 v2.5.0 // indirect
