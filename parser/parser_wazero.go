@@ -30,7 +30,6 @@ var (
 // TODO(anuraaga): Use shared memory with child modules instead of fresh runtimes per call.
 func newRT() (wazero.Runtime, wazero.CompiledModule) {
 	ctx := context.Background()
-	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
 		WithCompilationCache(wazero.NewCompilationCache()).
@@ -152,9 +151,12 @@ var (
 )
 
 func newABI() *abi {
+	ctx := context.Background()
+	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
+
 	rt, code := newRT()
 	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
-	mod, err := rt.InstantiateModule(context.Background(), code, cfg)
+	mod, err := rt.InstantiateModule(ctx, code, cfg)
 	if err != nil {
 		panic(err)
 	}
