@@ -1,7 +1,7 @@
 package pg_query
 
 import (
-	pganalyze "github.com/pganalyze/pg_query_go/v5"
+	pganalyze "github.com/pganalyze/pg_query_go/v6"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/wasilibs/go-pgquery/parser"

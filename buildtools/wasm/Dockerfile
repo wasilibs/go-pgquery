@@ -2,8 +2,8 @@ FROM ghcr.io/wasilibs/wasix-sdk:sha-fc94d60
 
 RUN apt-get update && apt-get install -y binaryen curl patch
 
-ENV CFLAGS "${CFLAGS} -O3 -pthread -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN -DPLATFORM_DEFAULT_SYNC_METHOD=SYNC_METHOD_OPEN_DSYNC"
-ENV LDFLAGS $LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman -Wl,--shared-memory -Wl,--max-memory=4294967296
+ENV CFLAGS="${CFLAGS} -O3 -pthread -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_MMAN -DPLATFORM_DEFAULT_WAL_SYNC_METHOD=WAL_SYNC_METHOD_OPEN_DSYNC"
+ENV LDFLAGS="$LDFLAGS -mexec-model=reactor -lwasi-emulated-process-clocks -lwasi-emulated-mman -Wl,--shared-memory -Wl,--max-memory=4294967296"
 
 WORKDIR /workspace
 ADD internal/cparser .
