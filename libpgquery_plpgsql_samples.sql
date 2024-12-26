@@ -76,43 +76,43 @@ END;$$;
 --   EXECUTE func_cmd;
 -- END;$func$;
 
--- CREATE OR REPLACE FUNCTION cs_parse_url(
---     v_url IN VARCHAR,
---     v_host OUT VARCHAR,  -- This will be passed back
---     v_path OUT VARCHAR,  -- This one too
---     v_query OUT VARCHAR) -- And this one
--- AS $$
--- DECLARE
---     a_pos1 INTEGER;
---     a_pos2 INTEGER;
--- BEGIN
---     v_host := NULL;
---     v_path := NULL;
---     v_query := NULL;
---     a_pos1 := instr(v_url, '//');
---
---     IF a_pos1 = 0 THEN
---         RETURN;
---     END IF;
---     a_pos2 := instr(v_url, '/', a_pos1 + 2);
---     IF a_pos2 = 0 THEN
---         v_host := substr(v_url, a_pos1 + 2);
---         v_path := '/';
---         RETURN;
---     END IF;
---
---     v_host := substr(v_url, a_pos1 + 2, a_pos2 - a_pos1 - 2);
---     a_pos1 := instr(v_url, '?', a_pos2 + 1);
---
---     IF a_pos1 = 0 THEN
---         v_path := substr(v_url, a_pos2);
---         RETURN;
---     END IF;
---
---     v_path := substr(v_url, a_pos2, a_pos1 - a_pos2);
---     v_query := substr(v_url, a_pos1 + 1);
--- END;
--- $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION cs_parse_url(
+    v_url IN VARCHAR,
+    v_host OUT VARCHAR,  -- This will be passed back
+    v_path OUT VARCHAR,  -- This one too
+    v_query OUT VARCHAR) -- And this one
+AS $$
+DECLARE
+    a_pos1 INTEGER;
+    a_pos2 INTEGER;
+BEGIN
+    v_host := NULL;
+    v_path := NULL;
+    v_query := NULL;
+    a_pos1 := instr(v_url, '//');
+
+    IF a_pos1 = 0 THEN
+        RETURN;
+    END IF;
+    a_pos2 := instr(v_url, '/', a_pos1 + 2);
+    IF a_pos2 = 0 THEN
+        v_host := substr(v_url, a_pos1 + 2);
+        v_path := '/';
+        RETURN;
+    END IF;
+
+    v_host := substr(v_url, a_pos1 + 2, a_pos2 - a_pos1 - 2);
+    a_pos1 := instr(v_url, '?', a_pos2 + 1);
+
+    IF a_pos1 = 0 THEN
+        v_path := substr(v_url, a_pos2);
+        RETURN;
+    END IF;
+
+    v_path := substr(v_url, a_pos2, a_pos1 - a_pos2);
+    v_query := substr(v_url, a_pos1 + 1);
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION cs_create_job(v_job_id integer) RETURNS void AS $$
 DECLARE
@@ -533,3 +533,80 @@ BEGIN
         EXECUTE 'GRANT ALL ON ' || quote_ident(r.table_schema) || '.' || quote_ident(r.table_name) || ' TO webuser';
     END LOOP;
 END$$;
+
+CREATE FUNCTION test_cursor() RETURNS void AS $$
+  DECLARE
+    i INT;
+    c CURSOR FOR SELECT generate_series(1,10);
+  BEGIN
+    FOR i IN c LOOP
+      RAISE NOTICE 'i is %',i;
+    END LOOP;
+  END
+$$ language plpgsql;
+
+CREATE FUNCTION public.dz_sumfunc(
+    IN  p_in  INTEGER
+    ,OUT p_out public.dz_sumthing
+)
+AS $BODY$
+DECLARE
+BEGIN
+    p_out.sumattribute := p_in;
+END;
+$BODY$
+LANGUAGE plpgsql;
+
+-- Examples from https://www.postgresql.org/docs/16/plpgsql-declarations.html#PLPGSQL-DECLARATION-PARAMETERS
+CREATE FUNCTION sales_tax(real) RETURNS real AS $$
+DECLARE
+    subtotal ALIAS FOR $1;
+BEGIN
+    RETURN subtotal * 0.06;
+END;
+$$ LANGUAGE plpgsql;
+
+-- RETURN NEXT; with no expression https://www.postgresql.org/docs/16/plpgsql-control-structures.html#PLPGSQL-STATEMENTS-RETURNING-RETURN-NEXT
+CREATE OR REPLACE FUNCTION public.test_pl(s integer, e integer)
+  RETURNS TABLE(id INTEGER) AS $$
+BEGIN
+  id := s;
+LOOP
+  EXIT WHEN id>e;
+  RETURN NEXT;
+  id := id + 1;
+END LOOP;
+END
+$$
+  LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trgfn()
+ RETURNS trigger AS $$
+DECLARE
+ prior ALIAS FOR old;
+ updated ALIAS FOR new;
+BEGIN
+ RETURN;
+END;
+$$
+  LANGUAGE plpgsql;
+
+-- Example from https://www.postgresql.org/docs/16/plpgsql-cursors.html
+CREATE FUNCTION reffunc2() RETURNS refcursor AS '
+DECLARE
+    ref refcursor;
+BEGIN
+    OPEN ref FOR SELECT col FROM test;
+    RETURN ref;
+END;
+' LANGUAGE plpgsql;
+
+-- Example from https://www.postgresql.org/docs/16/plpgsql-declarations.html#PLPGSQL-DECLARATION-COLLATION
+CREATE FUNCTION less_than(a text, b text) RETURNS boolean AS $$
+DECLARE
+    local_a text COLLATE "en_US" := a;
+    local_b text := b;
+BEGIN
+    RETURN local_a < local_b;
+END;
+$$ LANGUAGE plpgsql;
