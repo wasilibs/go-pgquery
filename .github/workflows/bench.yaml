@@ -22,7 +22,7 @@ jobs:
 
       - run: go run mage benchall
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: results
           path: build/*bench*.txt
