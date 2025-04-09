@@ -18,7 +18,7 @@ func init() {
 }
 
 func UpdateCParser() error {
-	ref := "v6.0.0"
+	ref := "v6.1.0"
 	uri := fmt.Sprintf("https://github.com/pganalyze/pg_query_go/archive/%s.zip", ref)
 	res, err := http.Get(uri)
 	if err != nil {
