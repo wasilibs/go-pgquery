@@ -1,4 +1,4 @@
-package pg_query
+package pg_query //nolint:revive // Keep package name aligned with existing public API.
 
 import (
 	pganalyze "github.com/pganalyze/pg_query_go/v6"

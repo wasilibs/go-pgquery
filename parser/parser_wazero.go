@@ -204,7 +204,7 @@ func getABI() *abi {
 
 	abiPool.Remove(e)
 	abiPoolMu.Unlock()
-	return e.Value.(*abi)
+	return e.Value.(*abi) //nolint:forcetypeassert // Private implementation detail: only *abi values are stored in abiPool.
 }
 
 type abi struct {
