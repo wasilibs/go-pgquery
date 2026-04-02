@@ -1,4 +1,4 @@
-package errors //nolint:revive // Keep import path/package name stable for existing callers.
+package pgerror
 
 type Error struct {
 	Message   string // exception message

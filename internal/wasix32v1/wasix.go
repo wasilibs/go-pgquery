@@ -1,4 +1,4 @@
-package wasix_32v1 //nolint:revive // Match module name expected by the bundled Wasix host shim.
+package wasix32v1
 
 import (
 	"context"

@@ -2,6 +2,6 @@
 
 package parser
 
-import "github.com/wasilibs/go-pgquery/internal/errors"
+import "github.com/wasilibs/go-pgquery/internal/pgerror"
 
-type Error = errors.Error
+type Error = pgerror.Error
