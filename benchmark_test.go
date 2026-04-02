@@ -8,7 +8,7 @@ import (
 	"github.com/wasilibs/go-pgquery/parser"
 )
 
-// Prevent compiler optimizations by assigning all results to global variables
+// Prevent compiler optimizations by assigning all results to global variables.
 var (
 	err        error
 	resultStr  []byte
@@ -16,7 +16,7 @@ var (
 )
 
 func benchmarkParse(input string, b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		resultTree, err = pg_query.Parse(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
@@ -36,7 +36,7 @@ func benchmarkParseParallel(input string, b *testing.B) {
 }
 
 func benchmarkRawParse(input string, b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		resultStr, err = parser.ParseToProtobuf(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
@@ -67,7 +67,7 @@ func benchmarkRawParseParallel(input string, b *testing.B) {
 
 func benchmarkFingerprint(input string, b *testing.B) {
 	var str string
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		str, err = pg_query.Fingerprint(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
@@ -79,7 +79,7 @@ func benchmarkFingerprint(input string, b *testing.B) {
 }
 
 func benchmarkNormalize(input string, b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		resultStr, err := pg_query.Normalize(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)

@@ -45,7 +45,7 @@ func newRT() (wazero.Runtime, wazero.CompiledModule) {
 	return rt, code
 }
 
-// ParseToJSON - Parses the given SQL statement into a parse tree (JSON format)
+// ParseToJSON - Parses the given SQL statement into a parse tree (JSON format).
 func ParseToJSON(input string) (result string, err error) {
 	abi := getABI()
 	defer abi.Close()
@@ -56,7 +56,7 @@ func ParseToJSON(input string) (result string, err error) {
 	return abi.pgQueryParse(inputC)
 }
 
-// ParseToProtobuf - Parses the given SQL statement into a parse tree (Protobuf format)
+// ParseToProtobuf - Parses the given SQL statement into a parse tree (Protobuf format).
 func ParseToProtobuf(input string) (result []byte, err error) {
 	abi := getABI()
 	defer abi.Close()
@@ -67,7 +67,7 @@ func ParseToProtobuf(input string) (result []byte, err error) {
 	return abi.pgQueryParseProtobuf(inputC)
 }
 
-// DeparseFromProtobuf - Deparses the given Protobuf format parse tree into a SQL statement
+// DeparseFromProtobuf - Deparses the given Protobuf format parse tree into a SQL statement.
 func DeparseFromProtobuf(input []byte) (result string, err error) {
 	abi := getABI()
 	defer abi.Close()
@@ -78,7 +78,7 @@ func DeparseFromProtobuf(input []byte) (result string, err error) {
 	return abi.pgQueryDeParseFromProtobuf(inputC)
 }
 
-// Scans the given SQL statement into a protobuf ScanResult
+// Scans the given SQL statement into a protobuf ScanResult.
 func ScanToProtobuf(input string) (result []byte, err error) {
 	abi := getABI()
 	defer abi.Close()
@@ -89,8 +89,8 @@ func ScanToProtobuf(input string) (result []byte, err error) {
 	return abi.pgQueryScanProtobuf(inputC)
 }
 
-// ParsePlPgSqlToJSON - Parses the given PL/pgSQL function statement into a parse tree (JSON format)
-func ParsePlPgSqlToJSON(input string) (result string, err error) {
+// ParsePlPgSqlToJSON - Parses the given PL/pgSQL function statement into a parse tree (JSON format).
+func ParsePlPgSqlToJSON(input string) (result string, err error) { //nolint:revive // Match upstream method name
 	abi := getABI()
 	defer abi.Close()
 
@@ -100,7 +100,7 @@ func ParsePlPgSqlToJSON(input string) (result string, err error) {
 	return abi.pgQueryParsePlPgSqlToJSON(inputC)
 }
 
-// Normalize the passed SQL statement to replace constant values with ? characters
+// Normalize the passed SQL statement to replace constant values with ? characters.
 func Normalize(input string) (result string, err error) {
 	abi := getABI()
 	defer abi.Close()
@@ -111,7 +111,7 @@ func Normalize(input string) (result string, err error) {
 	return abi.pgQueryNormalize(inputC)
 }
 
-// FingerprintToUInt64 - Fingerprint the passed SQL statement using the C extension and returns result as uint64
+// FingerprintToUInt64 - Fingerprint the passed SQL statement using the C extension and returns result as uint64.
 func FingerprintToUInt64(input string) (result uint64, err error) {
 	abi := getABI()
 	defer abi.Close()
@@ -122,7 +122,7 @@ func FingerprintToUInt64(input string) (result uint64, err error) {
 	return abi.pgQueryFingerprintToUint64(inputC)
 }
 
-// FingerprintToHexStr - Fingerprint the passed SQL statement using the C extension and returns result as hex string
+// FingerprintToHexStr - Fingerprint the passed SQL statement using the C extension and returns result as hex string.
 func FingerprintToHexStr(input string) (result string, err error) {
 	abi := getABI()
 	defer abi.Close()
@@ -133,7 +133,7 @@ func FingerprintToHexStr(input string) (result string, err error) {
 	return abi.pgQueryFingerprintToHexStr(inputC)
 }
 
-// HashXXH3_64 - Helper method to run XXH3 hash function (64-bit variant) on the given bytes, with the specified seed
+// HashXXH3_64 - Helper method to run XXH3 hash function (64-bit variant) on the given bytes, with the specified seed.
 func HashXXH3_64(input []byte, seed uint64) (result uint64) {
 	abi := getABI()
 	defer abi.Close()
@@ -141,7 +141,7 @@ func HashXXH3_64(input []byte, seed uint64) (result uint64) {
 	inputC := abi.newCStringFromBytes(input)
 	defer inputC.Close()
 
-	return uint64(abi.pgQueryHashXXH364(inputC, seed))
+	return abi.pgQueryHashXXH364(inputC, seed)
 }
 
 var (
@@ -187,7 +187,7 @@ func newABI() *abi {
 
 	res.pgQueryInit()
 	runtime.SetFinalizer(res, func(r *abi) {
-		r.rt.Close(context.Background())
+		_ = r.rt.Close(context.Background())
 	})
 
 	return res
@@ -234,11 +234,10 @@ type abi struct {
 	rt  wazero.Runtime
 }
 
-func (abi *abi) Close() error {
+func (abi *abi) Close() {
 	abiPoolMu.Lock()
 	abiPool.PushBack(abi)
 	abiPoolMu.Unlock()
-	return nil
 }
 
 func (abi *abi) pgQueryInit() {
@@ -311,7 +310,7 @@ func (abi *abi) pgQueryDeParseFromProtobuf(input cString) (result string, err er
 	defer abi.free.Call1(ctx, paramPtr)
 
 	abi.wasmMemory.WriteUint32Le(uint32(paramPtr), uint32(input.length))
-	abi.wasmMemory.WriteUint32Le(uint32(paramPtr+4), uint32(input.ptr))
+	abi.wasmMemory.WriteUint32Le(uint32(paramPtr+4), input.ptr)
 
 	abi.fPgQueryDeparseProtobuf.Call2(ctx, resPtr, paramPtr)
 	defer abi.fPgQueryFreeDeparseResult.Call1(ctx, resPtr)
@@ -387,7 +386,7 @@ func (abi *abi) pgQueryNormalize(input cString) (result string, err error) {
 	return
 }
 
-func (abi *abi) pgQueryParsePlPgSqlToJSON(input cString) (result string, err error) {
+func (abi *abi) pgQueryParsePlPgSqlToJSON(input cString) (result string, err error) { //nolint:revive // Match upstream method name
 	ctx := wasix_32v1.BackgroundContext()
 
 	resPtr := abi.malloc.Call1(ctx, 8)
@@ -459,11 +458,11 @@ func (abi *abi) pgQueryFingerprintToHexStr(input cString) (result string, err er
 	return
 }
 
-func (abi *abi) pgQueryHashXXH364(input cString, seed uint64) int {
+func (abi *abi) pgQueryHashXXH364(input cString, seed uint64) uint64 {
 	ctx := wasix_32v1.BackgroundContext()
 
-	res := abi.hashXXH364.Call3(ctx, uint64(input.ptr), uint64(input.length), seed)
-	return int(res)
+	res := abi.hashXXH364.Call3(ctx, uint64(input.ptr), uint64(input.length), seed) //nolint:gosec // length is positive
+	return res
 }
 
 func newPgQueryError(mod api.Module, errPtr uint32) error {
@@ -586,7 +585,7 @@ func (abi *abi) newCString(s string) cString {
 	if !abi.wasmMemory.WriteString(ptr, s) {
 		panic(errFailedWrite)
 	}
-	if !abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0) {
+	if !abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0) { //nolint:gosec // string must fit in 32-bit
 		panic(errFailedWrite)
 	}
 	return cString{
@@ -601,7 +600,7 @@ func (abi *abi) newCStringFromBytes(s []byte) cString {
 	if !abi.wasmMemory.Write(ptr, s) {
 		panic(errFailedWrite)
 	}
-	if !abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0) {
+	if !abi.wasmMemory.WriteByte(ptr+uint32(len(s)), 0) { //nolint:gosec // string must fit in 32-bit
 		panic(errFailedWrite)
 	}
 	return cString{
@@ -611,7 +610,6 @@ func (abi *abi) newCStringFromBytes(s []byte) cString {
 	}
 }
 
-func (s cString) Close() error {
+func (s cString) Close() {
 	s.abi.free.Call1(context.Background(), uint64(s.ptr))
-	return nil
 }

@@ -112,6 +112,9 @@ linters:
           - gosec
           - noctx
         path: _test\.go
+      - linters:
+          - gosec
+        text: "G115:" # Many Wasm pointer conversions
 formatters:
   enable:
     - gci

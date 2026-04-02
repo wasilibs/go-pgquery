@@ -57,19 +57,19 @@ func NewBuilder(r wazero.Runtime) Builder {
 
 type builder struct{ r wazero.Runtime }
 
-// hostModuleBuilder returns a new wazero.HostModuleBuilder for ModuleName
+// hostModuleBuilder returns a new wazero.HostModuleBuilder for ModuleName.
 func (b *builder) hostModuleBuilder() wazero.HostModuleBuilder {
 	ret := b.r.NewHostModuleBuilder(ModuleName)
 	exportFunctions(ret)
 	return ret
 }
 
-// Compile implements Builder.Compile
+// Compile implements Builder.Compile.
 func (b *builder) Compile(ctx context.Context) (wazero.CompiledModule, error) {
 	return b.hostModuleBuilder().Compile(ctx)
 }
 
-// Instantiate implements Builder.Instantiate
+// Instantiate implements Builder.Instantiate.
 func (b *builder) Instantiate(ctx context.Context) (api.Closer, error) {
 	return b.hostModuleBuilder().Instantiate(ctx)
 }
