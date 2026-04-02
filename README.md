@@ -1,7 +1,7 @@
 # go-pgquery
 
 go-pgquery is a drop-in replacement for [pg_query_go][1] which uses cgo to invoke the
-[libpg_query][2] library. By default, the c code is compiled to a WebAssembly module 
+[libpg_query][2] library. By default, the c code is compiled to a WebAssembly module
 and accessed with the pure Go runtime, [wazero][3]. This means that it is compatible with
 any Go application, regardless of availability of cgo, and will not have toolchain issues
 such as those that libpg_query commonly sees with MacOS upgrades.

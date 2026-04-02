@@ -1,7 +1,8 @@
-package wasix_32v1
+package wasix32v1
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -29,7 +30,11 @@ func MustInstantiate(ctx context.Context, r wazero.Runtime) {
 //   - Failure cases are documented on wazero.Runtime InstantiateModule.
 //   - Closing the wazero.Runtime has the same effect as closing the result.
 func Instantiate(ctx context.Context, r wazero.Runtime) (api.Closer, error) {
-	return NewBuilder(r).Instantiate(ctx)
+	closer, err := NewBuilder(r).Instantiate(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("instantiate %s host module: %w", ModuleName, err)
+	}
+	return closer, nil
 }
 
 // Builder configures the ModuleName module for later use via Compile or Instantiate.
@@ -42,12 +47,12 @@ type Builder interface {
 	// Compile compiles the ModuleName module. Call this before Instantiate.
 	//
 	// Note: This has the same effect as the same function on wazero.HostModuleBuilder.
-	Compile(context.Context) (wazero.CompiledModule, error)
+	Compile(ctx context.Context) (wazero.CompiledModule, error)
 
 	// Instantiate instantiates the ModuleName module and returns a function to close it.
 	//
 	// Note: This has the same effect as the same function on wazero.HostModuleBuilder.
-	Instantiate(context.Context) (api.Closer, error)
+	Instantiate(ctx context.Context) (api.Closer, error)
 }
 
 // NewBuilder returns a new Builder.
@@ -57,21 +62,29 @@ func NewBuilder(r wazero.Runtime) Builder {
 
 type builder struct{ r wazero.Runtime }
 
-// hostModuleBuilder returns a new wazero.HostModuleBuilder for ModuleName
+// hostModuleBuilder returns a new wazero.HostModuleBuilder for ModuleName.
 func (b *builder) hostModuleBuilder() wazero.HostModuleBuilder {
 	ret := b.r.NewHostModuleBuilder(ModuleName)
 	exportFunctions(ret)
 	return ret
 }
 
-// Compile implements Builder.Compile
+// Compile implements Builder.Compile.
 func (b *builder) Compile(ctx context.Context) (wazero.CompiledModule, error) {
-	return b.hostModuleBuilder().Compile(ctx)
+	compiled, err := b.hostModuleBuilder().Compile(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("compile %s host module: %w", ModuleName, err)
+	}
+	return compiled, nil
 }
 
-// Instantiate implements Builder.Instantiate
+// Instantiate implements Builder.Instantiate.
 func (b *builder) Instantiate(ctx context.Context) (api.Closer, error) {
-	return b.hostModuleBuilder().Instantiate(ctx)
+	mod, err := b.hostModuleBuilder().Instantiate(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("instantiate %s host module builder: %w", ModuleName, err)
+	}
+	return mod, nil
 }
 
 func exportFunctions(builder wazero.HostModuleBuilder) {
@@ -132,7 +145,7 @@ var futexWakeAllFn = api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []
 	panic("futex_wake_all")
 })
 
-var procIDFn = api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+var procIDFn = api.GoModuleFunc(func(_ context.Context, m api.Module, stack []uint64) {
 	resPtr := uint32(stack[0])
 	m.Memory().WriteUint32Le(resPtr, 1)
 	stack[0] = 0
@@ -141,7 +154,7 @@ var procIDFn = api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []
 var stackCheckpointFn = api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
 	snapshotPtr := stack[0]
 	retValPtr := stack[1]
-	d := ctx.Value(wasixDataKey{}).(*wasixData)
+	d := ctx.Value(wasixDataKey{}).(*wasixData) //nolint:forcetypeassert // Private implementation detail: BackgroundContext always seeds this key.
 
 	// We go ahead and save the entire C-stack for now
 	cstackPointer := uint32(mod.ExportedGlobal("__stack_pointer").Get())
@@ -187,10 +200,10 @@ var stackRestoreFn = api.GoModuleFunc(func(ctx context.Context, mod api.Module, 
 		panic("read failed")
 	}
 
-	d := ctx.Value(wasixDataKey{}).(*wasixData)
+	d := ctx.Value(wasixDataKey{}).(*wasixData) //nolint:forcetypeassert // Private implementation detail: BackgroundContext always seeds this key.
 	c := d.checkpoints[snapshotIdx]
 
-	mod.ExportedGlobal("__stack_pointer").(api.MutableGlobal).Set(uint64(c.cstackPointer))
+	mod.ExportedGlobal("__stack_pointer").(api.MutableGlobal).Set(uint64(c.cstackPointer)) //nolint:forcetypeassert // Private implementation detail: __stack_pointer is a mutable global in this module.
 	mod.Memory().Write(c.cstackPointer, c.cstack)
 
 	mod.Memory().WriteUint64Le(c.retValPtr, ret)

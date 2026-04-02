@@ -121,11 +121,11 @@ func TestLibPgqueryScan(t *testing.T) {
 				return
 			}
 			var buffer strings.Builder
-			for j := 0; j < len(actual.Tokens); j++ {
-				scanToken := actual.Tokens[j]
-				tokenKind := scanToken.Token
-				keywordKind := scanToken.KeywordKind
-				_, _ = fmt.Fprintf(&buffer, "%s = %s, %s\n", tests[i][scanToken.Start:scanToken.End], tokenKind.String(), keywordKind.String())
+			for j := range len(actual.GetTokens()) {
+				scanToken := actual.GetTokens()[j]
+				tokenKind := scanToken.GetToken()
+				keywordKind := scanToken.GetKeywordKind()
+				_, _ = fmt.Fprintf(&buffer, "%s = %s, %s\n", tests[i][scanToken.GetStart():scanToken.GetEnd()], tokenKind.String(), keywordKind.String())
 			}
 
 			if expected != buffer.String() {

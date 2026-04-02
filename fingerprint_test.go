@@ -11,9 +11,9 @@ import (
 )
 
 type fingerprintTest struct {
-	Input         string
-	ExpectedParts []string
-	ExpectedHash  string
+	Input         string   `json:"input"`
+	ExpectedParts []string `json:"expectedParts"`
+	ExpectedHash  string   `json:"expectedHash"`
 }
 
 func TestFingerprint(t *testing.T) {
@@ -37,7 +37,7 @@ func TestFingerprint(t *testing.T) {
 			t.Errorf("Fingerprint(%s)\nparse error %s\n\n", test.Input, err)
 		}
 
-		if string(fingerprint) != test.ExpectedHash {
+		if fingerprint != test.ExpectedHash {
 			t.Errorf("Fingerprint(%s)\nexpected %s\nactual %s\n\n", test.Input, test.ExpectedHash, fingerprint)
 		}
 

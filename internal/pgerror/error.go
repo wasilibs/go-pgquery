@@ -1,4 +1,4 @@
-package errors
+package pgerror
 
 type Error struct {
 	Message   string // exception message

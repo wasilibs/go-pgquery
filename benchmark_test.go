@@ -4,33 +4,34 @@ import (
 	"testing"
 
 	pganalyze "github.com/pganalyze/pg_query_go/v6"
-
 	pg_query "github.com/wasilibs/go-pgquery"
 	"github.com/wasilibs/go-pgquery/parser"
 )
 
-// Prevent compiler optimizations by assigning all results to global variables
+// Prevent compiler optimizations by assigning all results to global variables.
 var (
 	err        error
 	resultStr  []byte
 	resultTree *pganalyze.ParseResult
 )
 
-func benchmarkParse(input string, b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		resultTree, err = pg_query.Parse(input)
+func benchmarkParse(b *testing.B, input string) {
+	b.Helper()
 
+	for range b.N {
+		resultTree, err = pg_query.Parse(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
 		}
 	}
 }
 
-func benchmarkParseParallel(input string, b *testing.B) {
+func benchmarkParseParallel(b *testing.B, input string) {
+	b.Helper()
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_, err = pg_query.Parse(input)
-
 			if err != nil {
 				b.Errorf("Benchmark produced error %s\n\n", err)
 			}
@@ -38,10 +39,11 @@ func benchmarkParseParallel(input string, b *testing.B) {
 	})
 }
 
-func benchmarkRawParse(input string, b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		resultStr, err = parser.ParseToProtobuf(input)
+func benchmarkRawParse(b *testing.B, input string) {
+	b.Helper()
 
+	for range b.N {
+		resultStr, err = parser.ParseToProtobuf(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
 		}
@@ -52,13 +54,14 @@ func benchmarkRawParse(input string, b *testing.B) {
 	}
 }
 
-func benchmarkRawParseParallel(input string, b *testing.B) {
+func benchmarkRawParseParallel(b *testing.B, input string) {
+	b.Helper()
+
 	b.RunParallel(func(pb *testing.PB) {
 		var str []byte
 
 		for pb.Next() {
 			str, err = parser.ParseToProtobuf(input)
-
 			if err != nil {
 				b.Errorf("Benchmark produced error %s\n\n", err)
 			}
@@ -70,9 +73,11 @@ func benchmarkRawParseParallel(input string, b *testing.B) {
 	})
 }
 
-func benchmarkFingerprint(input string, b *testing.B) {
+func benchmarkFingerprint(b *testing.B, input string) {
+	b.Helper()
+
 	var str string
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		str, err = pg_query.Fingerprint(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
@@ -83,8 +88,10 @@ func benchmarkFingerprint(input string, b *testing.B) {
 	}
 }
 
-func benchmarkNormalize(input string, b *testing.B) {
-	for i := 0; i < b.N; i++ {
+func benchmarkNormalize(b *testing.B, input string) {
+	b.Helper()
+
+	for range b.N {
 		resultStr, err := pg_query.Normalize(input)
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
@@ -96,73 +103,73 @@ func benchmarkNormalize(input string, b *testing.B) {
 }
 
 func BenchmarkParseSelect1(b *testing.B) {
-	benchmarkParse("SELECT 1", b)
+	benchmarkParse(b, "SELECT 1")
 }
 
 func BenchmarkParseSelect2(b *testing.B) {
-	benchmarkParse("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')", b)
+	benchmarkParse(b, "SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
 }
 
 func BenchmarkParseCreateTable(b *testing.B) {
-	benchmarkParse("CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))", b)
+	benchmarkParse(b, "CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))")
 }
 
 func BenchmarkParseSelect1Parallel(b *testing.B) {
-	benchmarkParseParallel("SELECT 1", b)
+	benchmarkParseParallel(b, "SELECT 1")
 }
 
 func BenchmarkParseSelect2Parallel(b *testing.B) {
-	benchmarkParseParallel("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')", b)
+	benchmarkParseParallel(b, "SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
 }
 
 func BenchmarkParseCreateTableParallel(b *testing.B) {
-	benchmarkParseParallel("CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))", b)
+	benchmarkParseParallel(b, "CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))")
 }
 
 func BenchmarkRawParseSelect1(b *testing.B) {
-	benchmarkRawParse("SELECT 1", b)
+	benchmarkRawParse(b, "SELECT 1")
 }
 
 func BenchmarkRawParseSelect2(b *testing.B) {
-	benchmarkRawParse("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')", b)
+	benchmarkRawParse(b, "SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
 }
 
 func BenchmarkRawParseCreateTable(b *testing.B) {
-	benchmarkRawParse("CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))", b)
+	benchmarkRawParse(b, "CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))")
 }
 
 func BenchmarkRawParseSelect1Parallel(b *testing.B) {
-	benchmarkRawParseParallel("SELECT 1", b)
+	benchmarkRawParseParallel(b, "SELECT 1")
 }
 
 func BenchmarkRawParseSelect2Parallel(b *testing.B) {
-	benchmarkRawParseParallel("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')", b)
+	benchmarkRawParseParallel(b, "SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
 }
 
 func BenchmarkRawParseCreateTableParallel(b *testing.B) {
-	benchmarkRawParseParallel("CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))", b)
+	benchmarkRawParseParallel(b, "CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))")
 }
 
 func BenchmarkFingerprintSelect1(b *testing.B) {
-	benchmarkFingerprint("SELECT 1", b)
+	benchmarkFingerprint(b, "SELECT 1")
 }
 
 func BenchmarkFingerprintSelect2(b *testing.B) {
-	benchmarkFingerprint("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')", b)
+	benchmarkFingerprint(b, "SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
 }
 
 func BenchmarkFingerprintCreateTable(b *testing.B) {
-	benchmarkFingerprint("CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))", b)
+	benchmarkFingerprint(b, "CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))")
 }
 
 func BenchmarkNormalizeSelect1(b *testing.B) {
-	benchmarkNormalize("SELECT 1", b)
+	benchmarkNormalize(b, "SELECT 1")
 }
 
 func BenchmarkNormalizeSelect2(b *testing.B) {
-	benchmarkNormalize("SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')", b)
+	benchmarkNormalize(b, "SELECT 1 FROM x WHERE y IN ('a', 'b', 'c')")
 }
 
 func BenchmarkNormalizeCreateTable(b *testing.B) {
-	benchmarkNormalize("CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))", b)
+	benchmarkNormalize(b, "CREATE TABLE types (a float(2), b float(49), c NUMERIC(2, 3), d character(4), e char(5), f varchar(6), g character varying(7))")
 }

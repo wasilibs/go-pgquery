@@ -1,6 +1,7 @@
 package pg_query_test
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -8,10 +9,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	pg_query "github.com/pganalyze/pg_query_go/v6"
-	"google.golang.org/protobuf/testing/protocmp"
-
 	wasilibs_pg_query "github.com/wasilibs/go-pgquery"
 	"github.com/wasilibs/go-pgquery/parser"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var parseTests = []struct {
@@ -626,8 +626,16 @@ func TestParseError(t *testing.T) {
 		if actualErr == nil {
 			t.Errorf("Parse(%s)\nexpected error but none returned\n\n", test.input)
 		} else {
-			exp := test.expectedErr.(*parser.Error)
-			act := actualErr.(*parser.Error)
+			exp := func() *parser.Error {
+				target := &parser.Error{}
+				_ = errors.As(test.expectedErr, &target)
+				return target
+			}()
+			act := func() *parser.Error {
+				target := &parser.Error{}
+				_ = errors.As(actualErr, &target)
+				return target
+			}()
 			act.Lineno = 0 // Line number is architecture dependent, so we ignore it
 			if !reflect.DeepEqual(act, exp) {
 				t.Errorf(
@@ -644,7 +652,7 @@ func TestParseConcurrency(t *testing.T) {
 	t.Skip("Temporarily disable before introducing true concurrency support")
 	var wg sync.WaitGroup
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(1)
 
 		go func() {
