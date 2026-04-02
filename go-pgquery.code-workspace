@@ -1,0 +1,50 @@
+{
+  "folders": [
+    {
+      "name": "/",
+      "path": "."
+    }
+  ],
+  "extensions": {
+    "recommendations": ["esbenp.prettier-vscode", "foxundermoon.shell-format"]
+  },
+  "settings": {
+    "files.associations": {
+      "renovate*.json": "jsonc"
+    },
+    "[dockerfile]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "foxundermoon.shell-format"
+    },
+    "[dotenv]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "foxundermoon.shell-format"
+    },
+    "[ignore]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "foxundermoon.shell-format"
+    },
+    "[github-actions-workflow]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "go.lintFlags": ["--fix"],
+    "go.lintOnSave": "package",
+    "go.lintTool": "golangci-lint-v2",
+    "gopls": {
+      "formatting.gofumpt": true
+    },
+    "[markdown]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[shellscript]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "foxundermoon.shell-format"
+    },
+    "[yaml]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
+  }
+}
