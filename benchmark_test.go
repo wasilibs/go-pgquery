@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	pganalyze "github.com/pganalyze/pg_query_go/v6"
-
 	pg_query "github.com/wasilibs/go-pgquery"
 	"github.com/wasilibs/go-pgquery/parser"
 )
@@ -19,7 +18,6 @@ var (
 func benchmarkParse(input string, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resultTree, err = pg_query.Parse(input)
-
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
 		}
@@ -30,7 +28,6 @@ func benchmarkParseParallel(input string, b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_, err = pg_query.Parse(input)
-
 			if err != nil {
 				b.Errorf("Benchmark produced error %s\n\n", err)
 			}
@@ -41,7 +38,6 @@ func benchmarkParseParallel(input string, b *testing.B) {
 func benchmarkRawParse(input string, b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resultStr, err = parser.ParseToProtobuf(input)
-
 		if err != nil {
 			b.Errorf("Benchmark produced error %s\n\n", err)
 		}
@@ -58,7 +54,6 @@ func benchmarkRawParseParallel(input string, b *testing.B) {
 
 		for pb.Next() {
 			str, err = parser.ParseToProtobuf(input)
-
 			if err != nil {
 				b.Errorf("Benchmark produced error %s\n\n", err)
 			}

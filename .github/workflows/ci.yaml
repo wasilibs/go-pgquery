@@ -10,45 +10,13 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        mode:
-          - cgo
-          - wazero
-        os:
-          - macos-13
-          - macos-14
-          - ubuntu-22.04
-          - windows-2022
+    uses: wasilibs/actions/.github/workflows/ci.yaml@77762dfec6f9722d1b57acdfe352dcd16a1dc272
+    secrets: inherit
+
+  example:
+    runs-on: ubuntu-latest
+    needs: build
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: actions/setup-go@v4
-        with:
-          go-version: '^1.21'
-
-      - name: run checks
-        run: go run mage check
-        env:
-          WASI_TEST_MODE: ${{ matrix.mode }}
-
-  # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
-  # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
-  # but not build without a C toolchain available, e.g. if C source files are checked into the repo
-  # without a build tag to exclude them from pure-Go builds.
-  docker-build:
-    runs-on: ubuntu-22.04
-    container:
-      image: golang:alpine
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
-
-      - run: go run mage test
+      - uses: curioswitch/go-build/.github/actions/setup-go@91ef77720b0c28ee035379d1955413c4e2a230b8 # v0.7.2

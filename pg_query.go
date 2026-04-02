@@ -2,9 +2,8 @@ package pg_query
 
 import (
 	pganalyze "github.com/pganalyze/pg_query_go/v6"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/wasilibs/go-pgquery/parser"
+	"google.golang.org/protobuf/proto"
 )
 
 func Scan(input string) (result *pganalyze.ScanResult, err error) {
