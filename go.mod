@@ -14,3 +14,5 @@ require (
 	github.com/stretchr/testify v1.11.1 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 )
+
+replace github.com/tetratelabs/wazero => github.com/evacchi/wazero v1.7.1-0.20260418141118-6a31d4ad01e1

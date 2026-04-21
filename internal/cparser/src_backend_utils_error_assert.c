@@ -25,6 +25,16 @@
 #include <execinfo.h>
 #endif
 
+static int
+exception_pid(void)
+{
+#ifdef __wasi__
+	return 1;
+#else
+	return (int) getpid();
+#endif
+}
+
 /*
  * ExceptionalCondition - Handles the failure of an Assert()
  *
@@ -41,10 +51,10 @@ ExceptionalCondition(const char *conditionName,
 	if (!PointerIsValid(conditionName)
 		|| !PointerIsValid(fileName))
 		write_stderr("TRAP: ExceptionalCondition: bad arguments in PID %d\n",
-					 (int) getpid());
+					 exception_pid());
 	else
 		write_stderr("TRAP: failed Assert(\"%s\"), File: \"%s\", Line: %d, PID: %d\n",
-					 conditionName, fileName, lineNumber, (int) getpid());
+					 conditionName, fileName, lineNumber, exception_pid());
 
 	/* Usually this shouldn't be needed, but make sure the msg went out */
 	fflush(stderr);

@@ -12,10 +12,13 @@
 #define PGSTAT_H
 
 #include "datatype/timestamp.h"
+#include "miscadmin.h"
 #include "portability/instr_time.h"
 #include "postmaster/pgarch.h"	/* for MAX_XFN_CHARS */
 #include "utils/backend_progress.h" /* for backward compatibility */
+#ifndef __wasi__
 #include "utils/backend_status.h"	/* for backward compatibility */
+#endif
 #include "utils/relcache.h"
 #include "utils/wait_event.h"	/* for backward compatibility */
 

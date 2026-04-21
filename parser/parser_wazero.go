@@ -32,10 +32,9 @@ func newRT() (wazero.Runtime, wazero.CompiledModule) {
 
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
 		WithCompilationCache(wazero.NewCompilationCache()).
-		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads))
+		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads|experimental.CoreFeaturesExceptionHandling))
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
-	wasix32v1.MustInstantiate(ctx, rt)
 
 	code, err := rt.CompileModule(ctx, wasm.LibPGQuery)
 	if err != nil {

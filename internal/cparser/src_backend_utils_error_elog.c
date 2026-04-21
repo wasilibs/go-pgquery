@@ -122,7 +122,6 @@
 #endif
 
 #include "access/xact.h"
-#include "libpq/libpq.h"
 #include "libpq/pqformat.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
