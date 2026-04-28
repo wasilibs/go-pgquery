@@ -7,8 +7,8 @@ github.com/cli/safeexec v1.0.1/go.mod h1:Z/D4tTN8Vs5gXYHDCbaM1S/anmEDnJb1iW0+EJ5
 github.com/cli/shurcooL-graphql v0.0.4 h1:6MogPnQJLjKkaXPyGqPRXOI2qCsQdqNfUY1QSJu2GuY=
 github.com/cli/shurcooL-graphql v0.0.4/go.mod h1:3waN4u02FiZivIV+p1y4d0Jo1jc6BViMA73C+sZo2fk=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/curioswitch/go-build v0.7.2 h1:D0wxuetaXQAlkTuefAFhIrUTAUes1oAVQR/dDeN2bPk=
-github.com/curioswitch/go-build v0.7.2/go.mod h1:eEjV07dqwuYD/lHjBK+QdpltNglcUHY+uoYObcgyDeY=
+github.com/curioswitch/go-build v0.7.3 h1:HPENh6FSvJ6VMc6qjyoDAKuO+Ou7mSuKdvDC0uYahAM=
+github.com/curioswitch/go-build v0.7.3/go.mod h1:ZQuRTBRXk5b812Xs3RU6mgln2uuQ0MzYYkCkMdmkNeU=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.18.0 h1:S8gINlzdQ840/4pfAwic/ZE0djQEH3wM94VfqLTZcOM=
@@ -52,8 +52,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/thlib/go-timezone-local v0.0.7 h1:fX8zd3aJydqLlTs/TrROrIIdztzsdFV23OzOQx31jII=
 github.com/thlib/go-timezone-local v0.0.7/go.mod h1:/Tnicc6m/lsJE0irFMA0LfIwTBo4QP7A8IfyIv4zZKI=
-github.com/wasilibs/tools v0.0.0-20260318020442-c88bf2215220 h1:mKOjlt+WaxpWBBOheC2sQdtybWoJ+frIKB1Myn7L9kQ=
-github.com/wasilibs/tools v0.0.0-20260318020442-c88bf2215220/go.mod h1:6fMbnjjzd8di+DgVZ4l8VrFeit/zhhV4lVZt79Y4nxE=
+github.com/wasilibs/tools v0.0.0-20260420135155-29de0786664b h1:EeCeses0NgZxP1w9AnZ0ALYB9UhGJANZRCU26f/9N2g=
+github.com/wasilibs/tools v0.0.0-20260420135155-29de0786664b/go.mod h1:XJxwyomeaD/JTTProySxnrUAFldkC03WL1M9UHfNh3c=
 golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.42.0 h1:omrd2nAlyT5ESRdCLYdm3+fMfNFE/+Rf4bDIQImRJeo=
