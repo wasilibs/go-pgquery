@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/goyek/x v0.4.0
-	github.com/wasilibs/tools v0.0.0-20260512013034-09b865557c73
+	github.com/wasilibs/tools v0.0.0-20260519030106-5149b8046e4d
 )
 
 require (
