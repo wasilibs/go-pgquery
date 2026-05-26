@@ -97,7 +97,7 @@ _fingerprintInteger(FingerprintContext *ctx, const union ValUnion *value)
 		_fingerprintString(ctx, "Integer");
 		_fingerprintString(ctx, "ival");
 		char buffer[50];
-		sprintf(buffer, "%d", value->ival.ival);
+		snprintf(buffer, sizeof(buffer), "%d", value->ival.ival);
 		_fingerprintString(ctx, buffer);
 	}
 }
@@ -175,7 +175,7 @@ _fingerprintList(FingerprintContext *ctx, const List *node, const void *parent, 
 		}
 		else
 		{
-			listsort_items = palloc0(node->length * sizeof(FingerprintListsortItem*));
+			listsort_items = palloc0((size_t)node->length * sizeof(FingerprintListsortItem*));
 			listsort_items_size = 0;
 			ListCell *lc;
 			bool found;
@@ -367,7 +367,7 @@ PgQueryFingerprintResult pg_query_fingerprint_with_opts(const char* input, int p
 		_fingerprintFreeContext(&ctx);
 
 		XXH64_canonicalFromHash(&chash, result.fingerprint);
-		result.fingerprint_str = malloc(17 * sizeof(char));
+		result.fingerprint_str = malloc(17);
 		int n = snprintf(result.fingerprint_str, 17, "%02x%02x%02x%02x%02x%02x%02x%02x",
 						   chash.digest[0], chash.digest[1], chash.digest[2], chash.digest[3],
 						   chash.digest[4], chash.digest[5], chash.digest[6], chash.digest[7]);
