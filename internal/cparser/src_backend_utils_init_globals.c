@@ -29,8 +29,6 @@
 #include "postgres.h"
 
 #include "common/file_perm.h"
-#include "libpq/libpq-be.h"
-#include "libpq/pqcomm.h"
 #include "miscadmin.h"
 #include "storage/procnumber.h"
 
@@ -174,7 +172,6 @@ __thread bool		ExitOnAnyError = false;
 
 
 /* configurable SLRU buffer sizes */
-
 
 
 

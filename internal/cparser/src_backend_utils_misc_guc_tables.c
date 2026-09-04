@@ -26,6 +26,16 @@
  *
  *--------------------------------------------------------------------
  */
+#ifdef __wasi__
+
+#include "postgres.h"
+
+__thread bool		check_function_bodies = true;
+__thread int			log_min_messages = WARNING;
+__thread char	   *backtrace_functions;
+
+#else
+
 #include "postgres.h"
 
 #include <float.h>
@@ -498,5 +508,6 @@ StaticAssertDecl(lengthof(config_type_names) == (PGC_ENUM + 1),
 #else
 #endif
 
+#endif
 
 

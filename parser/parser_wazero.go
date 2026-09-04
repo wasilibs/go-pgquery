@@ -16,7 +16,6 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/experimental"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-	"github.com/wasilibs/go-pgquery/internal/wasix32v1"
 	"github.com/wasilibs/go-pgquery/internal/wasm"
 	"github.com/wasilibs/wazero-helpers/allocator"
 )
@@ -32,10 +31,9 @@ func newRT() (wazero.Runtime, wazero.CompiledModule) {
 
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
 		WithCompilationCache(wazero.NewCompilationCache()).
-		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads))
+		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads|experimental.CoreFeaturesExceptionHandling))
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
-	wasix32v1.MustInstantiate(ctx, rt)
 
 	code, err := rt.CompileModule(ctx, wasm.LibPGQuery)
 	if err != nil {
@@ -245,7 +243,7 @@ func (abi *abi) pgQueryInit() {
 }
 
 func (abi *abi) pgQueryParse(input cString) (result string, err error) {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 12)
 	defer abi.free.Call1(ctx, resPtr)
@@ -269,7 +267,7 @@ func (abi *abi) pgQueryParse(input cString) (result string, err error) {
 }
 
 func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 16)
 	defer abi.free.Call1(ctx, resPtr)
@@ -301,7 +299,7 @@ func (abi *abi) pgQueryParseProtobuf(input cString) (result []byte, err error) {
 }
 
 func (abi *abi) pgQueryDeParseFromProtobuf(input cString) (result string, err error) {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 8)
 	defer abi.free.Call1(ctx, resPtr)
@@ -331,7 +329,7 @@ func (abi *abi) pgQueryDeParseFromProtobuf(input cString) (result string, err er
 }
 
 func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 16)
 	defer abi.free.Call1(ctx, resPtr)
@@ -363,7 +361,7 @@ func (abi *abi) pgQueryScanProtobuf(input cString) (result []byte, err error) {
 }
 
 func (abi *abi) pgQueryNormalize(input cString) (result string, err error) {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 8)
 	defer abi.free.Call1(ctx, resPtr)
@@ -387,7 +385,7 @@ func (abi *abi) pgQueryNormalize(input cString) (result string, err error) {
 }
 
 func (abi *abi) pgQueryParsePlPgSqlToJSON(input cString) (result string, err error) { //nolint:revive // Match upstream method name
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 8)
 	defer abi.free.Call1(ctx, resPtr)
@@ -411,7 +409,7 @@ func (abi *abi) pgQueryParsePlPgSqlToJSON(input cString) (result string, err err
 }
 
 func (abi *abi) pgQueryFingerprintToUint64(input cString) (result uint64, err error) {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 20)
 	defer abi.free.Call1(ctx, resPtr)
@@ -435,7 +433,7 @@ func (abi *abi) pgQueryFingerprintToUint64(input cString) (result uint64, err er
 }
 
 func (abi *abi) pgQueryFingerprintToHexStr(input cString) (result string, err error) {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	resPtr := abi.malloc.Call1(ctx, 20)
 	defer abi.free.Call1(ctx, resPtr)
@@ -459,7 +457,7 @@ func (abi *abi) pgQueryFingerprintToHexStr(input cString) (result string, err er
 }
 
 func (abi *abi) pgQueryHashXXH364(input cString, seed uint64) uint64 {
-	ctx := wasix32v1.BackgroundContext()
+	ctx := context.Background()
 
 	res := abi.hashXXH364.Call3(ctx, uint64(input.ptr), uint64(input.length), seed) //nolint:gosec // length is positive
 	return res

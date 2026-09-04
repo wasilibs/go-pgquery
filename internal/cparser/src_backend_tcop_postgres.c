@@ -30,6 +30,55 @@
  *-------------------------------------------------------------------------
  */
 
+#ifdef __wasi__
+
+#include "postgres.h"
+
+#include "tcop/dest.h"
+
+__thread const char *debug_query_string;
+__thread CommandDest whereToSendOutput = DestDebug;
+__thread int			max_stack_depth = 100;
+
+static __thread long max_stack_depth_bytes = 100 * 1024L;
+static __thread char *stack_base_ptr = NULL;
+
+bool		stack_is_too_deep(void);
+
+void
+ProcessInterrupts(void)
+{
+}
+
+void
+check_stack_depth(void)
+{
+	if (stack_is_too_deep())
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_STATEMENT_TOO_COMPLEX),
+				 errmsg("stack depth limit exceeded"),
+				 errhint("Increase the configuration parameter \"max_stack_depth\" (currently %dkB), "
+						 "after ensuring the platform's stack depth limit is adequate.",
+						 max_stack_depth)));
+	}
+}
+
+bool
+stack_is_too_deep(void)
+{
+	char		stack_top_loc;
+	long		stack_depth;
+
+	stack_depth = (long) (stack_base_ptr - &stack_top_loc);
+	if (stack_depth < 0)
+		stack_depth = -stack_depth;
+
+	return stack_base_ptr != NULL && stack_depth > max_stack_depth_bytes;
+}
+
+#else
+
 #include "postgres.h"
 
 #include <fcntl.h>
@@ -826,3 +875,4 @@ stack_is_too_deep(void)
  * Disable statement timeout, if active.
  */
 
+#endif

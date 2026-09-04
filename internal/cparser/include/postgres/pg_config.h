@@ -436,7 +436,7 @@
 /* #undef HAVE_SYNC_FILE_RANGE */
 
 /* Define to 1 if you have the syslog interface. */
-#define HAVE_SYSLOG 1
+// #define HAVE_SYSLOG 1
 
 /* Define to 1 if you have the <sys/epoll.h> header file. */
 /* #undef HAVE_SYS_EPOLL_H */
