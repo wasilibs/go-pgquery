@@ -7,7 +7,7 @@ require (
 	github.com/pganalyze/pg_query_go/v6 v6.2.2
 	github.com/tetratelabs/wazero v1.12.0
 	github.com/wasilibs/wazero-helpers v0.0.0-20250123031827-cd30c44769bb
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
