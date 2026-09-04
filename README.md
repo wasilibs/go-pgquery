@@ -27,7 +27,7 @@ found. If encountering any issues, always feel free to file an issue.
 go-pgquery is a standard Go library package and can be added to a go.mod file. It will work fine in
 any Go project.
 
-```
+```text
 go get github.com/wasilibs/go-pgquery
 ```
 
@@ -64,7 +64,7 @@ should still be somewhat, though not precisely, informative.
 
 One run looks like this
 
-```
+```text
                               │ build/bench_default.txt │           build/bench.txt           │         build/bench_cgo.txt         │
                               │         sec/op          │    sec/op      vs base              │    sec/op     vs base               │
 ParseSelect1-4                            24.574µ ± ∞ ¹   24.859µ ± ∞ ¹       ~ (p=0.421 n=5)   6.558µ ± ∞ ¹  -73.31% (p=0.008 n=5)
@@ -87,11 +87,12 @@ NormalizeSelect2-4                        21.154µ ± ∞ ¹   22.804µ ± ∞ �
 NormalizeCreateTable-4                    21.750µ ± ∞ ¹   22.841µ ± ∞ ¹  +5.02% (p=0.008 n=5)   4.312µ ± ∞ ¹  -80.17% (p=0.008 n=5)
 ```
 
-We see that the WebAssembly version performs about 4-5x slower than cgo. This is a big difference and the largest we've
-found in wasilibs. It may be because of inefficiency in the implementation of exception handling. If your application
-requires online processing of high volume of queries, it may be better to continue with cgo. However, if it is an offline
-tool that only parses a small number of queries, it may still be reasonable performance in exchange for a simplified
-build toolchain - operations still complete within dozens of microseconds.
+We see that the WebAssembly version performs about 4-5x slower than cgo. This is a big difference and
+the largest we've found in wasilibs. It may be because of inefficiency in the implementation of
+exception handling. If your application requires online processing of high volume of queries, it may
+be better to continue with cgo. However, if it is an offline tool that only parses a small number of
+queries, it may still be reasonable performance in exchange for a simplified build toolchain -
+operations still complete within dozens of microseconds.
 
 [1]: https://github.com/pganalyze/pg_query_go
 [2]: https://github.com/pganalyze/libpg_query
