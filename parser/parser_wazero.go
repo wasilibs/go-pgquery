@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"os"
-	"runtime"
 	"sync"
 
 	"github.com/tetratelabs/wazero"
@@ -25,12 +24,19 @@ var (
 	errFailedRead  = errors.New("failed to read from wasm memory")
 )
 
-// TODO(anuraaga): Use shared memory with child modules instead of fresh runtimes per call.
-func newRT() (wazero.Runtime, wazero.CompiledModule) {
+var (
+	wasmRT       wazero.Runtime
+	wasmCompiled wazero.CompiledModule
+	rootMod      api.Module
+
+	wasmInitOnce sync.Once
+)
+
+func initWASM() {
 	ctx := context.Background()
+	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
-		WithCompilationCache(wazero.NewCompilationCache()).
 		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads|experimental.CoreFeaturesExceptionHandling))
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
@@ -40,7 +46,19 @@ func newRT() (wazero.Runtime, wazero.CompiledModule) {
 		panic(err)
 	}
 
-	return rt, code
+	if _, err := rt.InstantiateWithConfig(ctx, wasm.Memory, wazero.NewModuleConfig().WithName("env")); err != nil {
+		panic(err)
+	}
+
+	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithName("").WithStartFunctions("_initialize")
+	root, err := rt.InstantiateModule(ctx, code, cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	wasmRT = rt
+	wasmCompiled = code
+	rootMod = root
 }
 
 // ParseToJSON - Parses the given SQL statement into a parse tree (JSON format).
@@ -145,53 +163,79 @@ func HashXXH3_64(input []byte, seed uint64) (result uint64) {
 var (
 	abiPool   = list.New()
 	abiPoolMu sync.Mutex
+
+	// rootMu serializes execution of the root module, which shares one stack
+	// and thread-local storage among its invocations.
+	rootMu sync.Mutex
 )
 
 func newABI() *abi {
 	ctx := context.Background()
-	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
-	rt, code := newRT()
-	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithStartFunctions("_initialize")
-	mod, err := rt.InstantiateModule(ctx, code, cfg)
+	tlsSize := rootMod.ExportedGlobal("__tls_size").Get()
+	tlsAlign := rootMod.ExportedGlobal("__tls_align").Get()
+	// The stack is placed at the bottom of memory, so the root module's
+	// initial stack pointer is also the size of the stack.
+	stackSize := rootMod.ExportedGlobal("__stack_pointer").Get()
+	size := tlsSize + tlsAlign + stackSize
+
+	rootMu.Lock()
+	mallocRes, err := rootMod.ExportedFunction("malloc").Call(ctx, size)
+	rootMu.Unlock()
 	if err != nil {
 		panic(err)
 	}
-	res := &abi{
-		fPgQueryInit:                    newLazyFunction(rt, mod, "pg_query_init"),
-		fPgQueryParse:                   newLazyFunction(rt, mod, "pg_query_parse"),
-		fPgQueryFreeParseResult:         newLazyFunction(rt, mod, "pg_query_free_parse_result"),
-		fPgQueryParseProtobuf:           newLazyFunction(rt, mod, "pg_query_parse_protobuf"),
-		fPgQueryFreeProtobufParseResult: newLazyFunction(rt, mod, "pg_query_free_protobuf_parse_result"),
-		fPgQueryParsePlpgsql:            newLazyFunction(rt, mod, "pg_query_parse_plpgsql"),
-		fPgQueryFreePlpgsqlParseResult:  newLazyFunction(rt, mod, "pg_query_free_plpgsql_parse_result"),
-		fPgQueryScan:                    newLazyFunction(rt, mod, "pg_query_scan"),
-		fPgQueryFreeScanResult:          newLazyFunction(rt, mod, "pg_query_free_scan_result"),
-		fPgQueryNormalize:               newLazyFunction(rt, mod, "pg_query_normalize"),
-		fPgQueryFreeNormalizeResult:     newLazyFunction(rt, mod, "pg_query_free_normalize_result"),
-		fPgQueryFingerprint:             newLazyFunction(rt, mod, "pg_query_fingerprint"),
-		fPgQueryFreeFingerprintResult:   newLazyFunction(rt, mod, "pg_query_free_fingerprint_result"),
-		fPgQueryDeparseProtobuf:         newLazyFunction(rt, mod, "pg_query_deparse_protobuf"),
-		fPgQueryFreeDeparseResult:       newLazyFunction(rt, mod, "pg_query_free_deparse_result"),
-		hashXXH364:                      newLazyFunction(rt, mod, "XXH3_64bits_withSeed"),
+	ptr := uint32(mallocRes[0])
 
-		malloc: newLazyFunction(rt, mod, "malloc"),
-		free:   newLazyFunction(rt, mod, "free"),
+	cfg := wazero.NewModuleConfig().WithSysNanotime().WithStdout(os.Stdout).WithStderr(os.Stderr).WithName("").
+		// Start functions already executed with the root module.
+		WithStartFunctions()
+	mod, err := wasmRT.InstantiateModule(ctx, wasmCompiled, cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	tlsBase := (uint64(ptr) + tlsAlign - 1) &^ (tlsAlign - 1)
+	if _, err := mod.ExportedFunction("__wasm_init_tls").Call(ctx, tlsBase); err != nil {
+		panic(err)
+	}
+
+	stackTop := (uint64(ptr) + size) &^ 15
+	mod.ExportedGlobal("__stack_pointer").(api.MutableGlobal).Set(stackTop) //nolint:forcetypeassert // __stack_pointer is a mutable global in this module.
+
+	res := &abi{
+		fPgQueryInit:                    newLazyFunction(mod, "pg_query_init"),
+		fPgQueryParse:                   newLazyFunction(mod, "pg_query_parse"),
+		fPgQueryFreeParseResult:         newLazyFunction(mod, "pg_query_free_parse_result"),
+		fPgQueryParseProtobuf:           newLazyFunction(mod, "pg_query_parse_protobuf"),
+		fPgQueryFreeProtobufParseResult: newLazyFunction(mod, "pg_query_free_protobuf_parse_result"),
+		fPgQueryParsePlpgsql:            newLazyFunction(mod, "pg_query_parse_plpgsql"),
+		fPgQueryFreePlpgsqlParseResult:  newLazyFunction(mod, "pg_query_free_plpgsql_parse_result"),
+		fPgQueryScan:                    newLazyFunction(mod, "pg_query_scan"),
+		fPgQueryFreeScanResult:          newLazyFunction(mod, "pg_query_free_scan_result"),
+		fPgQueryNormalize:               newLazyFunction(mod, "pg_query_normalize"),
+		fPgQueryFreeNormalizeResult:     newLazyFunction(mod, "pg_query_free_normalize_result"),
+		fPgQueryFingerprint:             newLazyFunction(mod, "pg_query_fingerprint"),
+		fPgQueryFreeFingerprintResult:   newLazyFunction(mod, "pg_query_free_fingerprint_result"),
+		fPgQueryDeparseProtobuf:         newLazyFunction(mod, "pg_query_deparse_protobuf"),
+		fPgQueryFreeDeparseResult:       newLazyFunction(mod, "pg_query_free_deparse_result"),
+		hashXXH364:                      newLazyFunction(mod, "XXH3_64bits_withSeed"),
+
+		malloc: newLazyFunction(mod, "malloc"),
+		free:   newLazyFunction(mod, "free"),
 
 		mod:        mod,
 		wasmMemory: mod.Memory(),
-		rt:         rt,
 	}
 
 	res.pgQueryInit()
-	runtime.SetFinalizer(res, func(r *abi) {
-		_ = r.rt.Close(context.Background())
-	})
 
 	return res
 }
 
 func getABI() *abi {
+	wasmInitOnce.Do(initWASM)
+
 	abiPoolMu.Lock()
 
 	e := abiPool.Front()
@@ -229,7 +273,6 @@ type abi struct {
 	wasmMemory api.Memory
 
 	mod api.Module
-	rt  wazero.Runtime
 }
 
 func (abi *abi) Close() {
@@ -514,13 +557,12 @@ func readCStringPtr(mem api.Memory, ptrptr uint32) string {
 
 type lazyFunction struct {
 	f    api.Function
-	rt   wazero.Runtime
 	name string
 	mod  api.Module
 }
 
-func newLazyFunction(rt wazero.Runtime, mod api.Module, name string) lazyFunction {
-	return lazyFunction{rt: rt, mod: mod, name: name}
+func newLazyFunction(mod api.Module, name string) lazyFunction {
+	return lazyFunction{mod: mod, name: name}
 }
 
 func (f *lazyFunction) Call0(ctx context.Context) uint64 {

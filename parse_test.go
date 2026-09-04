@@ -649,7 +649,6 @@ func TestParseError(t *testing.T) {
 }
 
 func TestParseConcurrency(t *testing.T) {
-	t.Skip("Temporarily disable before introducing true concurrency support")
 	var wg sync.WaitGroup
 
 	for range 100 {

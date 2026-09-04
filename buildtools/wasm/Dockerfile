@@ -5,7 +5,7 @@ ARG BINARYEN_VERSION=version_125
 ARG BINARYEN_X86_64_SHA256=7c3bc16599c8274a04d34a504fe4be2047884f900e0e2da2f6fb9cd667183be4
 ARG BINARYEN_AARCH64_SHA256=d0382de3c189a7cbb9fdda93e2966f4557f6a00f201e2c4937c27ca01cead4fc
 
-RUN apt-get update && apt-get install -y ca-certificates curl patch && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates curl patch wabt && rm -rf /var/lib/apt/lists/*
 
 ADD buildtools/wasm/install-binaryen.sh /tmp/install-binaryen.sh
 RUN ["/tmp/install-binaryen.sh"]
@@ -22,7 +22,7 @@ RUN patch -p3 < patch.txt
 RUN CMD="$CC -Iinclude -Iinclude/postgres -fstack-protector -std=gnu99 -Wno-unknown-warning-option -c $CFLAGS *.c" && echo $CMD && $CMD
 RUN $AR rs libpg_query.a *.o
 
-ENV LDFLAGS="--target=wasm32-wasip1-threads --sysroot=/opt/wasi-sdk/share/wasi-sysroot -mexec-model=reactor -pthread -lsetjmp -lwasi-emulated-process-clocks -lwasi-emulated-mman -lwasi-emulated-signal -Wl,--shared-memory -Wl,--max-memory=4294967296"
+ENV LDFLAGS="--target=wasm32-wasip1-threads --sysroot=/opt/wasi-sdk/share/wasi-sysroot -mexec-model=reactor -pthread -lsetjmp -lwasi-emulated-process-clocks -lwasi-emulated-mman -lwasi-emulated-signal -Wl,--shared-memory -Wl,--import-memory -Wl,--export-memory -Wl,--max-memory=4294967296 -Wl,-z,stack-size=1048576"
 
 RUN $CC -o libpg_query-noopt.so $LDFLAGS \
   libpg_query.a \
@@ -44,9 +44,15 @@ RUN $CC -o libpg_query-noopt.so $LDFLAGS \
   -Wl,--export=pg_query_deparse_protobuf \
   -Wl,--export=pg_query_free_deparse_result \
   -Wl,--export=XXH3_64bits_withSeed \
+  -Wl,--export=__wasm_init_tls \
   -Wl,--export=__stack_pointer \
-  -Wl,--export=__heap_base
+  -Wl,--export=__tls_size \
+  -Wl,--export=__tls_align
 
 RUN wasm-opt -o libpg_query.so --translate-to-exnref -O3 libpg_query-noopt.so
 
-CMD ["bash", "-c", "cp libpg_query.so /out/"]
+RUN pages=$(wasm-objdump -x libpg_query.so | grep -oE 'initial=[0-9]+' | head -1 | grep -oE '[0-9]+') \
+  && printf '(module (memory (export "memory") %s 65536 shared))' "$pages" > memory.wat \
+  && wat2wasm --enable-threads memory.wat -o memory.wasm
+
+CMD ["bash", "-c", "cp libpg_query.so memory.wasm /out/"]
