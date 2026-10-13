@@ -4,17 +4,17 @@ go 1.26.0
 
 require (
 	github.com/goyek/x v0.4.0
-	github.com/wasilibs/tools v0.0.0-20260929014345-c21540c72fe8
+	github.com/wasilibs/tools v0.0.0-20261013015535-d993e720e9e1
 )
 
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/cli/go-gh/v2 v2.16.0 // indirect
+	github.com/cli/go-gh/v2 v2.16.2 // indirect
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cli/shurcooL-graphql v0.0.4 // indirect
-	github.com/curioswitch/go-build v0.9.0 // indirect
+	github.com/curioswitch/go-build v0.10.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/google/go-github/v91 v91.0.0 // indirect
+	github.com/google/go-github/v92 v92.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/goyek/goyek/v3 v3.0.1 // indirect
 	github.com/henvic/httpretty v0.2.0 // indirect
