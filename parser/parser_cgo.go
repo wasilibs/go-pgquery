@@ -50,3 +50,9 @@ func FingerprintToHexStr(input string) (result string, err error) {
 func HashXXH3_64(input []byte, seed uint64) (result uint64) {
 	return pganalyze.HashXXH3_64(input, seed)
 }
+
+// SetCompilationCacheDir does nothing in builds using cgo, which compile no
+// WebAssembly. See the default build's documentation.
+func SetCompilationCacheDir(string) error {
+	return nil
+}
