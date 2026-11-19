@@ -56,6 +56,21 @@ The build tag `pgquery_cgo` can be used to enable cgo support. Note, this is exa
 code as `pg_query_go` - if you only need cgo support, it is recommended to use the official
 library instead of this one.
 
+### Startup
+
+The first call that parses compiles the WebAssembly module to machine code, which takes about a
+second and a half. A short-lived process, such as a command-line tool, pays that on every run. To
+pay it once, keep the compiled code in a directory, before the first parse:
+
+```go
+if err := pg_query.SetCompilationCacheDir(filepath.Join(os.TempDir(), "my-tool-pgquery")); err != nil {
+	return err
+}
+```
+
+Later processes using the same directory start in a fraction of the time. Calling it after the
+first parse returns an error. With the `pgquery_cgo` tag it does nothing.
+
 ## Performance
 
 Benchmarks are run against every commit in the [bench][5] workflow. GitHub action runners are highly

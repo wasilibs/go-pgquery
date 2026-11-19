@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
@@ -22,6 +23,8 @@ import (
 var (
 	errFailedWrite = errors.New("failed to write to wasm memory")
 	errFailedRead  = errors.New("failed to read from wasm memory")
+
+	errAlreadyStarted = errors.New("go-pgquery: SetCompilationCacheDir must be called before the first parse")
 )
 
 var (
@@ -30,14 +33,51 @@ var (
 	rootMod      api.Module
 
 	wasmInitOnce sync.Once
+
+	// cacheMu guards compilationCache and wasmStarted, so that
+	// SetCompilationCacheDir and the first parse agree on whether the
+	// runtime was built with the cache.
+	cacheMu          sync.Mutex
+	compilationCache wazero.CompilationCache
+	wasmStarted      bool
 )
+
+// SetCompilationCacheDir makes the parser keep the machine code it compiles
+// from its WebAssembly in dir, creating dir if needed, so that later
+// processes using the same dir skip that compilation. It must be called
+// before the first call that parses, scans, normalizes, fingerprints or
+// deparses; after that it returns an error and changes nothing. Builds using
+// cgo (the pgquery_cgo tag) have nothing to compile, and it does nothing
+// there.
+func SetCompilationCacheDir(dir string) error {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	if wasmStarted {
+		return errAlreadyStarted
+	}
+	cache, err := wazero.NewCompilationCacheWithDir(dir)
+	if err != nil {
+		return fmt.Errorf("go-pgquery: compilation cache: %w", err)
+	}
+	compilationCache = cache
+	return nil
+}
 
 func initWASM() {
 	ctx := context.Background()
 	ctx = experimental.WithMemoryAllocator(ctx, allocator.NewNonMoving())
 
-	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
-		WithCoreFeatures(api.CoreFeaturesV2|experimental.CoreFeaturesThreads|experimental.CoreFeaturesExceptionHandling))
+	cacheMu.Lock()
+	wasmStarted = true
+	cache := compilationCache
+	cacheMu.Unlock()
+
+	rtCfg := wazero.NewRuntimeConfig().
+		WithCoreFeatures(api.CoreFeaturesV2 | experimental.CoreFeaturesThreads | experimental.CoreFeaturesExceptionHandling)
+	if cache != nil {
+		rtCfg = rtCfg.WithCompilationCache(cache)
+	}
+	rt := wazero.NewRuntimeWithConfig(ctx, rtCfg)
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 

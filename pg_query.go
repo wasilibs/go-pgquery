@@ -6,6 +6,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// SetCompilationCacheDir makes the parser keep the machine code it compiles
+// from its WebAssembly in dir, so that later processes using the same dir
+// start faster. Call it before the first parse; see
+// parser.SetCompilationCacheDir.
+func SetCompilationCacheDir(dir string) error {
+	return parser.SetCompilationCacheDir(dir) //nolint:wrapcheck // Simple proxy method
+}
+
 func Scan(input string) (result *pganalyze.ScanResult, err error) {
 	protobufScan, err := parser.ScanToProtobuf(input)
 	if err != nil {
