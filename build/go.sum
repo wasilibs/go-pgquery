@@ -50,8 +50,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/thlib/go-timezone-local v0.0.9 h1:NJAmMmgFfjcyyx+M5EU4sSU35opbw4sVpk5n4Qk/bGk=
 github.com/thlib/go-timezone-local v0.0.9/go.mod h1:/Tnicc6m/lsJE0irFMA0LfIwTBo4QP7A8IfyIv4zZKI=
-github.com/wasilibs/tools v0.0.0-20261110072308-874599a85bc5 h1:7i77SGXl73CTwLKsuhVDdTgBHb7SHCqYrvlyRS8jCPE=
-github.com/wasilibs/tools v0.0.0-20261110072308-874599a85bc5/go.mod h1:GlsBzfp6zXzQkPo578dtEdx2vH2/2R7d+lb0XudWklU=
+github.com/wasilibs/tools v0.0.0-20261117021409-4491fbc0b2f9 h1:mj0VSdDkruF0bP1+QoLUFDWkeq2d/GYNh/VeDugzLcU=
+github.com/wasilibs/tools v0.0.0-20261117021409-4491fbc0b2f9/go.mod h1:GlsBzfp6zXzQkPo578dtEdx2vH2/2R7d+lb0XudWklU=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
 go.yaml.in/yaml/v3 v3.0.5/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
 golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
