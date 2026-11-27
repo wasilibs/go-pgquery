@@ -275,7 +275,15 @@ type abi struct {
 	mod api.Module
 }
 
+// Close returns the ABI to the pool. It must be called directly by defer so
+// that it can detect a panic from a failed wasm call, in which case the
+// instance may be left in a corrupt state (e.g., an unrestored stack pointer)
+// and is dropped instead of being pooled. The module is not closed since that
+// would free memory shared with other instances.
 func (abi *abi) Close() {
+	if r := recover(); r != nil {
+		panic(r)
+	}
 	abiPoolMu.Lock()
 	abiPool.PushBack(abi)
 	abiPoolMu.Unlock()
